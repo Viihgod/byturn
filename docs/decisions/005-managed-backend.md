@@ -1,6 +1,8 @@
 # Managed backend direction
 
-Status: Supabase remains the recommendation; no cloud account or project has been provisioned by this repository. The owner prefers managed infrastructure and minimal operational overhead.
+Status: accepted. A hosted Free project was created on 2026-11-02 and verified Healthy in the dashboard. The owner prefers managed infrastructure and minimal operational overhead.
+
+Organization: Byturn. Project: byturn. Region: South America (São Paulo), sa-east-1. Project reference: jiqccvludgoctwxhvqtb. Dashboard: https://supabase.com/dashboard/project/jiqccvludgoctwxhvqtb . The public schema is initially empty; the application is not connected yet. Project creation is not evidence that application authorization has been implemented or tested. No database password or secret API key is stored here.
 
 Use managed Supabase Postgres, Auth and private Storage. Write database schema, migrations, transactional review rules and row-level security in SQL. Use TypeScript in Supabase Edge Functions (Deno runtime) for privileged operations, external integrations and future billing webhooks where necessary. Do not introduce a standalone Python or Rust API for the current scope.
 
@@ -10,7 +12,7 @@ Supabase supplies managed authentication primitives and database/storage policy 
 
 Account setup: create or use the owner's Supabase account, choose an organization and create a Free project. Prefer connecting through the owner's GitHub account when appropriate. Keep database credentials in a secret manager/local environment, not source code or chat. Local Supabase development can precede the hosted project.
 
-The owner requests inactivity reminders only after a hosted project is actually running. No reminder is active yet. At activation, record the actual project and agree on reminder days/time. Normal database-backed use twice per week is a reasonable habit, not a guarantee of the provider's low-activity classification. The provider says visiting the project dashboard can generate activity, but does not guarantee that two visits per week meet its low-activity threshold. Do not promise monitoring unless the integration exists.
+The owner requested inactivity reminders after the hosted project starts. Normal database-backed use twice per week is a reasonable habit, not a guarantee of the provider's low-activity classification. The provider says visiting the project dashboard can generate activity, but does not guarantee that two visits per week meet its low-activity threshold. A scheduled check must distinguish observed low activity from missing metrics or expired dashboard access; it must not generate synthetic database traffic or promise continuous monitoring.
 
 Sources:
 
