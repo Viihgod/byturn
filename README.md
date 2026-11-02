@@ -17,6 +17,7 @@ npm run dev
 
 ```sh
 npm run lint
+npm run check
 npm run build
 npm run preview
 ```
@@ -38,6 +39,12 @@ CSS identifiers use `bt-*`; React exports use `Bt*`. Control sizes are xs 28, sm
 3. Select the backend, add migrations, enforce workspace isolation and version-specific decisions on the server.
 4. Add real uploads, permissions and review links; verify multi-user behavior and failure recovery.
 5. Document local backend setup, deployment and contribution; choose the product license before public release.
+
+## Delivery workflow
+
+Work on feature branches, integrate into `develop`, and release validated batches to `main` with SemVer tags. Run `npm run check` locally or in CI. It includes lint, behavior tests with coverage thresholds, delivery-tooling tests and the production build. `npm ci` installs pre-push and local merge hooks. See [delivery rules](docs/decisions/003-delivery.md) for limits and the versioned release procedure. Hooks do not enforce GitHub web merges.
+
+Track work in the [Byturn delivery kanban](https://github.com/users/Viihgod/projects/4). See [license options](docs/decisions/004-license-options.md) before choosing the public product license.
 
 ## Licensing and privacy
 

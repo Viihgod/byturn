@@ -1,0 +1,12 @@
+# Product license options
+
+Status: decision pending. No product license has been applied. All options below allow commercial use, including charging for hosting or services. Third-party licenses remain applicable. Software licensing does not automatically determine brand/trademark policy.
+
+- MIT: permissive, short; preserve the copyright and license notice. Others can modify, sell and redistribute closed derivatives. No explicit patent grant in its text. https://choosealicense.com/licenses/mit/
+- Apache-2.0: permissive; allows closed commercial derivatives, includes an explicit contributor patent grant and patent-litigation termination conditions. Redistributors must preserve required notices, mark changed files, provide the license and carry applicable NOTICE attributions if present. It does not grant trademark rights. https://www.apache.org/licenses/LICENSE-2.0
+- MPL-2.0: file-level copyleft. When covered software is distributed, covered files and their modifications must be available under MPL; separate files in a larger work may use other terms. Server-side hosting alone is not an AGPL-style source trigger, but distributing frontend code still matters. https://choosealicense.com/licenses/mpl-2.0/
+- AGPL-3.0: strong copyleft, including a source offer to remote users interacting with a modified network-served version. It allows selling services and does not prohibit competing hosts. Compatibility and derivative-work boundaries need care when integrating proprietary modules. https://choosealicense.com/licenses/agpl-3.0/
+
+Recommendation for a low-friction portfolio/community project: Apache-2.0, if closed commercial forks are acceptable. Choose AGPL when keeping network-deployed modifications open is a higher priority. Monetization alone does not determine the choice. A dual commercial license later requires sufficient rights over all contributed code; do not promise relicensing community contributions without agreement. Open-source grants already received by users are not simply withdrawn by changing the repository license later.
+
+Potential business models: managed hosting, storage tiers, support, setup and integrations. Do not add a non-commercial restriction and still describe that restricted license as open source.

@@ -8,3 +8,6 @@ dist-ssr/
 *.log
 .vscode/
 .DS_Store
+
+coverage/
+.checks/
