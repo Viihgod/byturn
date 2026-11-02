@@ -1,0 +1,8 @@
+@import './design-system/tokens.css';
+* { box-sizing: border-box; }
+:root { font-family: var(--bt-font-family); color: var(--bt-text); background: var(--bt-canvas); color-scheme: dark; }
+:root[data-theme='light'] { color-scheme: light; }
+body { margin: 0; min-width: 320px; }
+button, select, input { font: inherit; }
+:focus-visible { outline: var(--bt-focus-width) solid var(--bt-focus); outline-offset: 3px; }
+p { line-height: var(--bt-line-height-body); }
