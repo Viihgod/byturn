@@ -1,5 +1,11 @@
 # First working review journey
 
+## Current priority override — 2026-11-02
+
+The owner moved product implementation to the backlog. Deliver the consolidated identity guide and a reviewable design-system v1 first; see docs/design-system-v1.md. The product phases below are retained for future execution, not the current overnight commitment. Evaluate the product direction after the owner's reference walkthrough before expanding the SaaS.
+
+Access model: one studio owns many clients and may access all their files; each client may access only its own assigned content, including isolation between two clients of the same studio. Studio isolation alone is insufficient. The upload cap is 5 MB, replacing the earlier 10 MB proposal. PNG/JPEG over 2 MB may receive an optional locally generated WebP suggestion with before/after comparison and explicit file selection. No quality, color, metadata or size guarantee; no silent replacement. The version under review must identify the actual file being approved. All earlier conflicting defaults in the historical plan below are superseded by this paragraph.
+
 Status: execution plan prepared after the infrastructure bootstrap, 2026-11-02. This is planned work, not a claim that the product is implemented. Follow the phases in dependency order; preserve verified partial deliveries if external setup blocks a later phase.
 
 ## Outcome
