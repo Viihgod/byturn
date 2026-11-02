@@ -38,6 +38,54 @@ export function Identity() {
           <span>{t('guide.yellowSurface')}</span>
         </div>
       </div>
+      <div className="guide-section-heading">
+        <h2>{t('identity.applicationsTitle')}</h2>
+        <p>{t('identity.applicationsIntro')}</p>
+      </div>
+      <div className="identity-applications">
+        <figure className="identity-application" data-piece="announcement">
+          <div className="identity-piece" data-surface="ink">
+            <span className="identity-piece-eyebrow">{t('identity.announcementEyebrow')}</span>
+            <div className="identity-piece-orbits" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </div>
+            <BtBrandLockup />
+            <div className="identity-piece-footer">
+              <p>{t('identity.announcementLine')}</p>
+              <span>{t('identity.announcementBody')}</span>
+            </div>
+          </div>
+          <figcaption>{t('identity.announcementCaption')}</figcaption>
+        </figure>
+        <figure className="identity-application" data-piece="cover">
+          <div className="identity-piece" data-surface="paper">
+            <span className="identity-piece-eyebrow">{t('identity.coverEyebrow')}</span>
+            <BtBrandLockup />
+            <div className="identity-piece-footer">
+              <p>{t('identity.coverLine')}</p>
+              <span>{t('identity.coverBody')}</span>
+            </div>
+            <span className="identity-piece-edition">01 / 01</span>
+          </div>
+          <figcaption>{t('identity.coverCaption')}</figcaption>
+        </figure>
+        <figure className="identity-application" data-piece="handoff">
+          <div className="identity-piece" data-surface="yellow">
+            <span className="identity-piece-eyebrow">{t('identity.handoffEyebrow')}</span>
+            <BtBrandLockup />
+            <div className="identity-piece-footer">
+              <p>{t('identity.handoffLine')}</p>
+              <span>{t('identity.handoffBody')}</span>
+            </div>
+          </div>
+          <figcaption>{t('identity.handoffCaption')}</figcaption>
+        </figure>
+      </div>
+      <BtCollapse title={t('identity.applicationsRules')}>
+        <p>{t('identity.applicationsRulesBody')}</p>
+      </BtCollapse>
       <BtCollapse title={t('guide.geometry')}>
         <p>{t('guide.geometryBody')}</p>
         <div className="signature-reference">

@@ -245,8 +245,35 @@
   resize: vertical;
   line-height: 1.55;
 }
+.bt-selector-control {
+  position: relative;
+  min-width: 0;
+}
 .bt-selector {
-  padding-right: var(--bt-space-xl);
+  display: block;
+  appearance: none;
+  padding-inline-end: calc(var(--bt-space-md) * 2 + 16px);
+}
+.bt-selector-caret {
+  position: absolute;
+  inset-inline-end: calc(var(--bt-space-md) + var(--bt-border-width));
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+  color: var(--bt-text);
+}
+.bt-selector:disabled + .bt-selector-caret {
+  opacity: 0.48;
+}
+@media (forced-colors: active) {
+  .bt-selector {
+    appearance: auto;
+  }
+  .bt-selector-caret {
+    display: none;
+  }
 }
 .bt-checkbox,
 .bt-radio-group label {

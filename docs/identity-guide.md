@@ -26,6 +26,12 @@ Outfit 400 / 500 / 600 supports the interface. The approved wordmark is a vector
 
 Regular-weight Phosphor icons, 16 px in standard controls. Pair unfamiliar actions with text. Icon-only buttons require an accessible name; decorative icons are hidden from assistive technology.
 
+## The identity, in use.
+
+An announcement, a presentation cover and a delivery card. The mark leads; the message gives it context.
+
+The approved lockup stays centered on both axes. A small upper label and a separate lower message frame the mark without shifting its center. Short copy stays inside generous margins. Orbit colors remain transparent at 34% over the dark surface and stay away from the logo. These are composition studies, not new logo or palette proposals.
+
 ## Color
 
 Electric yellow #F2FF40. Orbit 02: blue #369CFF, violet #AD64FF, pink #FF6DB7. Dark: normal alpha 34%; light: multiply alpha 24%. Text stays above the tint. Preserve these transparent layers. Semantic decision colors are separate.

@@ -7,6 +7,7 @@ let identity =
   '# Byturn identity guide / v1\n\nApproved: name, symbol, custom lettering, Outfit, palette and lockup proportion. Usage rules and minimum-size recommendations are proposals for owner review.\n\n'
 for (const section of sections)
   identity += `## ${translations[`guide.${section}`]}\n\n${translations[`guide.${section}Body`]}\n\n`
+identity += `## ${translations['identity.applicationsTitle']}\n\n${translations['identity.applicationsIntro']}\n\n${translations['identity.applicationsRulesBody']}\n\n`
 identity +=
   '## Color\n\nElectric yellow #F2FF40. Orbit 02: blue #369CFF, violet #AD64FF, pink #FF6DB7. Dark: normal alpha 34%; light: multiply alpha 24%. Text stays above the tint. Preserve these transparent layers. Semantic decision colors are separate.\n\n## Export use\n\nUse master SVGs rather than reconstructing the logo from font text. Ink, paper and yellow SVG/PNG variants preserve the same paths. The symbol-to-lowercase-n visible height ratio is approximately 1.032. The standalone symbol is contextual; primary signatures should use the approved lockup. PNG exports have transparent backgrounds.\n\n## Licensing\n\nProject code is Apache-2.0. Outfit remains under its SIL Open Font License. Third-party component primitives/icons keep their original licenses. Apache-2.0 does not grant trademark rights. No trademark registration is claimed.\n'
 writeFileSync(new URL('docs/identity-guide.md', root), identity)

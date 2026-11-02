@@ -7,6 +7,7 @@ import type {
   TextareaHTMLAttributes,
 } from 'react'
 import { Switch } from 'radix-ui'
+import { CaretDown } from '@phosphor-icons/react'
 import type { BtSize } from './scales'
 
 type FieldProps = { label: string; hint?: string; error?: string; required?: boolean }
@@ -136,17 +137,21 @@ export function BtSelector({
   return (
     <div className="bt-field">
       <label htmlFor={controlId}>{label}</label>
-      <select
-        id={controlId}
-        className={`bt-selector ${className}`}
-        data-size={size}
-        {...props}
-        aria-invalid={error ? true : props['aria-invalid']}
-        aria-describedby={
-          [props['aria-describedby'], hint || error ? description : ''].filter(Boolean).join(' ') ||
-          undefined
-        }
-      />
+      <div className="bt-selector-control">
+        <select
+          id={controlId}
+          className={`bt-selector ${className}`}
+          data-size={size}
+          {...props}
+          aria-invalid={error ? true : props['aria-invalid']}
+          aria-describedby={
+            [props['aria-describedby'], hint || error ? description : '']
+              .filter(Boolean)
+              .join(' ') || undefined
+          }
+        />
+        <CaretDown className="bt-selector-caret" aria-hidden="true" />
+      </div>
       {(hint || error) && (
         <span
           id={description}
