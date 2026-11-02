@@ -1,6 +1,6 @@
 # Product license options
 
-Status: decision pending. No product license has been applied. All options below allow commercial use, including charging for hosting or services. Third-party licenses remain applicable. Software licensing does not automatically determine brand/trademark policy.
+Status: Apache-2.0 selected by the owner on 2026-11-02 and applied in LICENSE, NOTICE and package metadata. Repository remains private until a separate public-release decision. The alternatives below are retained as research. All options below allow commercial use, including charging for hosting or services. Third-party licenses remain applicable. Software licensing does not automatically determine brand/trademark policy.
 
 - MIT: permissive, short; preserve the copyright and license notice. Others can modify, sell and redistribute closed derivatives. No explicit patent grant in its text. https://choosealicense.com/licenses/mit/
 - Apache-2.0: permissive; allows closed commercial derivatives, includes an explicit contributor patent grant and patent-litigation termination conditions. Redistributors must preserve required notices, mark changed files, provide the license and carry applicable NOTICE attributions if present. It does not grant trademark rights. https://www.apache.org/licenses/LICENSE-2.0

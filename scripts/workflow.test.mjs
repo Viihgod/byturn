@@ -28,38 +28,44 @@ function fixture(t, checkExit = 0) {
   }
   git('init', '-b', 'main'); git('config', 'user.name', 'Byturn Test'); git('config', 'user.email', 'test@example.invalid')
   git('config', 'commit.gpgsign', 'false'); git('config', 'tag.gpgsign', 'false'); git('config', 'core.hooksPath', '.unused-hooks')
-  git('add', '.'); git('commit', '-m', 'Initial fixture'); git('branch', 'develop')
+  git('add', '.'); git('commit', '-m', 'Initial fixture')
   const node = (script, args = [], input) => spawnSync(process.execPath, [`scripts/${script}.mjs`, ...args], { cwd, encoding: 'utf8', input })
-  const batch = () => { git('switch', 'develop'); writeFileSync(join(cwd, 'feature.txt'), 'New feature'); git('add', '.'); git('commit', '-m', 'Feature'); git('switch', 'main') }
-  return { cwd, git, node, batch }
+  return { cwd, git, node }
 }
 
-test('release refuses invalid bumps, wrong branch, dirty trees and empty batches', t => {
+test('release refuses invalid bumps, wrong branch and dirty trees', t => {
   const f = fixture(t)
   assert.notEqual(f.node('release', ['surprise']).status, 0)
-  assert.notEqual(f.node('release', ['minor']).status, 0)
-  f.git('switch', 'develop')
+  f.git('switch', '-c', 'feature/example')
   assert.notEqual(f.node('release', ['minor']).status, 0)
   f.git('switch', 'main')
   writeFileSync(join(f.cwd, 'dirty.txt'), 'Uncommitted')
   assert.notEqual(f.node('release', ['minor']).status, 0)
 })
 test('failed release validation creates neither release commit nor tag', t => {
-  const f = fixture(t, 1); f.batch()
+  const f = fixture(t, 1)
   const before = f.git('rev-parse', 'HEAD')
   assert.notEqual(f.node('release', ['minor']).status, 0)
   assert.equal(f.git('rev-parse', 'HEAD'), before)
   assert.equal(f.git('tag', '--list'), '')
-  assert.ok(f.git('rev-parse', '--verify', 'MERGE_HEAD'))
+  assert.ok(f.git('status', '--porcelain').includes('package.json'))
 })
-test('successful release versions the merged tree and creates an annotated tag', t => {
-  const f = fixture(t); f.batch()
+test('successful release versions main without develop and creates an annotated tag', t => {
+  const f = fixture(t)
   const result = f.node('release', ['minor'])
   assert.equal(result.status, 0, result.stderr)
   assert.equal(JSON.parse(readFileSync(join(f.cwd, 'package.json'), 'utf8')).version, '0.1.0')
   assert.equal(JSON.parse(readFileSync(join(f.cwd, 'package-lock.json'), 'utf8')).version, '0.1.0')
-  assert.equal(f.git('rev-list', '--parents', '-n', '1', 'HEAD').split(' ').length, 3)
+  assert.equal(f.git('rev-list', '--parents', '-n', '1', 'HEAD').split(' ').length, 2)
   assert.equal(f.git('cat-file', '-t', 'v0.1.0'), 'tag')
+  assert.equal(f.git('status', '--porcelain'), '')
+})
+test('release refuses to overwrite an existing version tag', t => {
+  const f = fixture(t)
+  f.git('tag', 'v0.1.0')
+  const head = f.git('rev-parse', 'HEAD')
+  assert.notEqual(f.node('release', ['minor']).status, 0)
+  assert.equal(f.git('rev-parse', 'HEAD'), head)
   assert.equal(f.git('status', '--porcelain'), '')
 })
 test('pre-push validates HEAD and rejects a dirty or different revision', t => {

@@ -12,4 +12,4 @@ Record the checked commit SHA and any manual/browser evidence. Local validation 
 
 ## Release impact
 
-State breaking changes, migration/storage implications and intended release impact where relevant. Feature PRs target develop; release batches target main.
+State breaking changes, migration/storage implications and intended release impact where relevant. Short-lived feature/fix PRs target main. Versions and tags mark deliberate releases, not every feature merge.

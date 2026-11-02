@@ -38,14 +38,14 @@ CSS identifiers use `bt-*`; React exports use `Bt*`. Control sizes are xs 28, sm
 2. Build the first review flow with explicit mock data: V1, comments, changes requested, V2, approval and handoff.
 3. Select the backend, add migrations, enforce workspace isolation and version-specific decisions on the server.
 4. Add real uploads, permissions and review links; verify multi-user behavior and failure recovery.
-5. Document local backend setup, deployment and contribution; choose the product license before public release.
+5. Document local backend setup, deployment and contribution; prepare the first public release.
 
 ## Delivery workflow
 
-Work on feature branches, integrate into `develop`, and release validated batches to `main` with SemVer tags. Run `npm run check` locally or in CI. It includes lint, behavior tests with coverage thresholds, delivery-tooling tests and the production build. `npm ci` installs pre-push and local merge hooks. See [delivery rules](docs/decisions/003-delivery.md) for limits and the versioned release procedure. Hooks do not enforce GitHub web merges.
+Work on short-lived feature/fix branches and integrate directly into `main`. No develop stage is required. Mark deliberate releases with SemVer tags. Run `npm run check` locally or in CI. It includes lint, behavior tests with coverage thresholds, delivery-tooling tests and the production build. `npm ci` installs pre-push and local merge hooks. See [delivery rules](docs/decisions/003-delivery.md) for limits and the versioned release procedure. Hooks do not enforce GitHub web merges.
 
-Track work in the [Byturn delivery kanban](https://github.com/users/Viihgod/projects/4). See [license options](docs/decisions/004-license-options.md) before choosing the public product license.
+Track work in the [Byturn delivery kanban](https://github.com/users/Viihgod/projects/4/views/2). The owner selected Apache-2.0; see [the license decision](docs/decisions/004-license-options.md).
 
 ## Licensing and privacy
 
-The project is intended for an open-source release. The product license has not been selected; this private preparation repository does not yet grant a product license. Outfit's license is included alongside its font. No credentials, private research or personal project context belong in this repository.
+The project code is licensed under [Apache-2.0](LICENSE). See [NOTICE](NOTICE) for attribution. Outfit remains under its included SIL Open Font License. Apache-2.0 does not grant trademark rights. Repository visibility remains private during preparation; applying a license does not publish the repository. No credentials, private research or personal project context belong in this repository.
