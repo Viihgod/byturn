@@ -1,0 +1,16 @@
+{
+  "repository": "https://github.com/cgwire/kitsu",
+  "commit": "91e295f8154ec768602f2e9e5cb633b89300b787",
+  "license": "AGPL-3.0",
+  "method": "Case-insensitive pattern-token matches in distinct src/**/*.vue files; includes declarations and styles, not exact import/render counts.",
+  "rows": [
+    { "pattern": "Combobox", "files": 125, "source": "src/components/widgets/Combobox.vue", "result": "BtSelector", "existing": true },
+    { "pattern": "SearchField", "files": 23, "source": "src/components/widgets/SearchField.vue", "result": "BtSearchInput" },
+    { "pattern": "DateField", "files": 19, "source": "src/components/widgets/DateField.vue", "result": "BtDateField" },
+    { "pattern": "Checklist", "files": 17, "source": "src/components/widgets/Checklist.vue", "result": "BtChecklist" },
+    { "pattern": "PeopleField", "files": 16, "source": "src/components/widgets/PeopleField.vue", "result": "BtCombobox" },
+    { "pattern": "SearchQueryList", "files": 11, "source": "src/components/widgets/SearchQueryList.vue", "result": "BtFilterChip" },
+    { "pattern": "ConfirmModal", "files": 6, "source": "src/components/modals/ConfirmModal.vue", "result": "BtConfirmDialog" },
+    { "pattern": "MultiselectField", "files": 2, "source": "src/components/widgets/MultiselectField.vue", "result": "BtMultiSelector" }
+  ]
+}

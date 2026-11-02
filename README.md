@@ -1,10 +1,12 @@
 # Byturn
 
-Creative review and approval, with feedback and decisions attached to the right version.
+Creative review identity and design-system study. The SaaS is intentionally deferred while the owner evaluates the product direction.
 
-## Current status
+## Current delivery
 
-Early frontend foundation: React, Vite and TypeScript, approved brand assets, theme tokens, English/PT-BR translations and five initial component primitives. The preview is a foundation sandbox, not the product. Disabled sample actions do not save, approve or send anything. There is no backend, authentication or upload service yet.
+A reviewable identity guide, semantic foundations, interactive React component catalog and original illustrative applications. English default / PT-BR translation.json; dark default / optional light. The approved symbol and custom Outfit lettering are preserved. Usage recommendations and component APIs are v1 proposals for owner review, not blanket approval of every rule.
+
+The catalog is a real React implementation; review specimens use local state. No authentication, service authorization, file conversion, shared approvals or backend persistence is implemented. Supabase Free is provisioned but not connected. The upload specimen validates type/size locally and does not upload files.
 
 ## Run locally
 
@@ -16,36 +18,32 @@ npm run dev
 ```
 
 ```sh
-npm run lint
 npm run check
-npm run build
+npm run package:design
+npm run review:build
 npm run preview
 ```
 
+`package:design` refreshes generated token CSS/JSON, guide/API documentation and the downloadable ZIP after source changes. Artifact tests reject stale package source. `review:build` produces dist/Byturn_Identity_DS_v1.html as a portable review with local assets inlined. The portable bundle includes font and ZIP download data; it prioritizes a self-contained mobile review over a minimal app bundle.
+
 ## Structure
 
-- `src/design-system`: approved assets, tokens and initial BtButton, BtSelector, BtCard, BtCollapse and BtSegmented primitives.
-- `src/i18n/translation.json`: all localized UI text; English is the default.
-- `src/features/review`: reserved for the first complete version review workflow.
-- `src/services`: reserved for persistence and authentication adapters.
-- `docs/decisions`: architecture decisions and researched backend options.
+- `src/design-system`: approved assets, semantic tokens and React primitives/compositions.
+- `src/catalog`: identity/foundation guide, component registry, interactive examples, original fictional artwork and package downloads.
+- `src/i18n/translation.json`: localized UI text; English is the default.
+- `docs/identity-guide.md`: approved identity and proposed usage rules.
+- `docs/component-api.md`: API reference and accessibility contract.
+- `docs/design-system-v1.md`: scope and product direction boundary.
+- `docs/overnight-progress.md`: execution checkpoint and evidence.
 
-CSS identifiers use `bt-*`; React exports use `Bt*`. Control sizes are xs 28, sm 30, md 32 (default), lg 38 and xl 44 px. Spacing and radius have their own named scales.
+React identifiers use Bt*; CSS uses bt-*. Control heights: xs 28, sm 30, md 32 default, lg 38, xl 44 px. Spacing/radius have separate named scales. Badges, avatars, brand assets and multiline text have anatomy-specific sizing. Radix supplies unstyled interaction behavior; the visual system is Byturn. Icons use Phosphor.
 
-## Next milestones
+## Quality and delivery
 
-1. Refine and document the component API and states with the design-system owner.
-2. Build the first review flow with explicit mock data: V1, comments, changes requested, V2, approval and handoff.
-3. Select the backend, add migrations, enforce workspace isolation and version-specific decisions on the server.
-4. Add real uploads, permissions and review links; verify multi-user behavior and failure recovery.
-5. Document local backend setup, deployment and contribution; prepare the first public release.
+`npm run check` runs lint, component/i18n/guide tests, DS/i18n coverage thresholds, delivery-tooling/archive tests and production type-check/build. Guide integration tests cover navigation, filtering, language, themes and illustrative client views; their illustrative rendering code is outside the DS coverage threshold. Browser inspection remains necessary for pointer behavior, layout, focus, color composition and downloads. No coverage percentage proves product security.
 
-## Delivery workflow
-
-Work on short-lived feature/fix branches and integrate directly into `main`. No develop stage is required. Mark deliberate releases with SemVer tags. Run `npm run check` locally or in CI. It includes lint, behavior tests with coverage thresholds, delivery-tooling tests and the production build. `npm ci` installs pre-push and local merge hooks. See [delivery rules](docs/decisions/003-delivery.md) for limits and the versioned release procedure. Hooks do not enforce GitHub web merges.
-
-Track work in the [Byturn delivery kanban](https://github.com/users/Viihgod/projects/4/views/2). The owner selected Apache-2.0; see [the license decision](docs/decisions/004-license-options.md).
+Short-lived branches integrate into main. `npm ci` installs local push/merge hooks. See docs/decisions/003-delivery.md for their limits and deliberate SemVer release procedures. The working board is https://github.com/users/Viihgod/projects/4/views/2 .
 
 ## Licensing and privacy
 
-The project code is licensed under [Apache-2.0](LICENSE). See [NOTICE](NOTICE) for attribution. Outfit remains under its included SIL Open Font License. Apache-2.0 does not grant trademark rights. Repository visibility remains private during preparation; applying a license does not publish the repository. No credentials, private research or personal project context belong in this repository.
+Code: Apache-2.0 (LICENSE and NOTICE). Outfit: included SIL Open Font License. Radix and Phosphor: MIT, with package notices. Brand use remains separate from the software license. Never commit credentials, private research or personal context. Repository visibility remains private until a separate public-release decision.
