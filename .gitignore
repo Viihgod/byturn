@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-review/
 dist-ssr/
 *.local
 .env
@@ -11,3 +12,4 @@ dist-ssr/
 
 coverage/
 .checks/
+.data/
