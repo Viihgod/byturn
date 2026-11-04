@@ -79,7 +79,7 @@
   gap: 6px;
 }
 .p-sidebar nav a,
-.p-sidebar nav .p-settings-trigger {
+.p-sidebar .p-settings-trigger {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -93,7 +93,7 @@
   background: var(--bt-selected-fill);
 }
 .p-sidebar nav a:hover,
-.p-sidebar nav .p-settings-trigger:hover {
+.p-sidebar .p-settings-trigger:hover {
   background: var(--bt-surface-raised);
 }
 .p-settings-trigger {
@@ -103,6 +103,32 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+.p-sidebar-base {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.p-settings-trigger svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.p-settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.3);
+  z-index: var(--bt-z-overlay);
+  pointer-events: auto;
+}
+.p-settings-modal {
+  position: relative;
+  inset: auto;
+  transform: none;
+  margin: 0;
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
 }
 .p-settings-resources h3 {
   font-size: 12px;
@@ -147,7 +173,7 @@
   width: 14px;
 }
 .p-person {
-  margin-top: auto;
+  margin-top: 0;
   display: flex;
   gap: 10px;
   align-items: center;
@@ -933,12 +959,16 @@
     gap: 4px;
   }
   .p-sidebar nav a,
-  .p-sidebar nav .p-settings-trigger {
+  .p-sidebar .p-settings-trigger {
     font-size: 12px;
     padding: 10px;
     width: auto;
     flex: none;
     white-space: nowrap;
+  }
+  .p-sidebar-base {
+    margin-top: 0;
+    width: 100%;
   }
   .p-topbar {
     min-height: 56px;
@@ -1113,7 +1143,7 @@
     max-width: 100%;
   }
   .p-sidebar nav a,
-  .p-sidebar nav .p-settings-trigger {
+  .p-sidebar .p-settings-trigger {
     padding: 8px;
     gap: 6px;
   }

@@ -6,7 +6,6 @@ import {
   Check,
   DownloadSimple,
   FolderSimple,
-  GearSix,
   LinkSimple,
   Moon,
   Plus,
@@ -21,6 +20,7 @@ import { BtDialog } from '../design-system/overlays'
 import { LocaleProvider } from '../i18n/context'
 import { useTranslation } from '../i18n/locale'
 import { api, ApiError, filePath, imagePayload } from './api'
+import { Settings } from './Settings'
 import type { Asset, Project, User, Version } from './api'
 import '../design-system/components.css'
 import './product.css'
@@ -332,38 +332,15 @@ function Workspace() {
                 {p('team')}
               </a>
             )}
-            <BtDialog
-              title={p('settings')}
-              description={p('settingsIntro')}
-              closeLabel={p('close')}
-              trigger={
-                <button className="p-settings-trigger">
-                  <GearSix />
-                  {p('settings')}
-                </button>
-              }
-            >
-              <section className="p-settings-resources">
-                <h3>{p('resources')}</h3>
-                <div className="p-settings-resource">
-                  <ShieldCheck size={24} aria-hidden="true" />
-                  <div>
-                    <h4>{p('designSystem')}</h4>
-                    <p>{p('designSystemHint')}</p>
-                  </div>
-                </div>
-                <a className="p-settings-link" href="?guide=1" target="_blank" rel="noreferrer">
-                  {p('openDesignSystem')}
-                  <ArrowUpRight aria-hidden="true" />
-                </a>
-              </section>
-            </BtDialog>
           </nav>
-          <div className="p-person">
-            <span className="p-avatar">{user?.name.slice(0, 1)}</span>
-            <div>
-              <strong>{user?.name}</strong>
-              <small>{p(user?.role ?? 'member')}</small>
+          <div className="p-sidebar-base">
+            <Settings />
+            <div className="p-person">
+              <span className="p-avatar">{user?.name.slice(0, 1)}</span>
+              <div>
+                <strong>{user?.name}</strong>
+                <small>{p(user?.role ?? 'member')}</small>
+              </div>
             </div>
           </div>
         </aside>

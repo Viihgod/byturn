@@ -8,6 +8,8 @@ Open http://127.0.0.1:4174 on the computer running the server. The design-system
 
 Inside the signed-in workspace, open Settings in the sidebar, then Resources → Open design system. Settings opens as a modal and preserves the current project; the guide opens in a separate tab.
 
+Settings is at the bottom of the sidebar, immediately above the account/avatar. The modal opens next to its trigger with a 30% black backdrop; narrow screens place it below the trigger so it stays visible.
+
 The explicit local demo seed uses password `Byturn-review-2026!` for these fictional accounts:
 
 | Email | Account | Project access |

@@ -1,5 +1,7 @@
 # Product review — 2026-11-03
 
+Latest Settings refinement: the trigger now belongs to the sidebar footer directly above the account/avatar. Its modal is anchored 12 px to the right, aligned to the trigger's bottom edge, with a dedicated black backdrop at 30% opacity. On narrow screens it opens below the trigger with viewport collision handling. This change is scoped to Settings; other dialogs keep their existing presentation. The six internal Figma sidebars and both Settings overlay scenes were updated in the existing file. Browser checks verified exact backdrop alpha, anchor/account geometry, Escape/focus return, outside-click dismissal and a fully visible 358 px modal in a 390 px viewport.
+
 Navigation update: the sidebar now opens Settings as a modal. Its Resources section links to the design-system guide in a separate tab; the guide is no longer a primary navigation item. The same Figma file has corrected navigation in all four internal screens and two additional Settings overlay scenes (light/dark), bringing the total to ten frames. Browser QA confirmed Escape/focus return, the guide destination, translation and 390 px modal layout.
 
 Steps 1–3 authorized by the owner are implemented for local review on branch `feat/self-hosted-review`. No public deployment, repository publication, merge or supported installer release is included.
