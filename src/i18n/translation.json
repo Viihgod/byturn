@@ -633,7 +633,12 @@
     "product.error.CANNOT_DISABLE_SELF": "You cannot disable your own account.",
     "product.error.JSON_REQUIRED": "The request could not be sent. Reload and try again.",
     "product.error.METHOD_NOT_ALLOWED": "This action is unavailable.",
-    "product.version.uploaded": "Version uploaded"
+    "product.version.uploaded": "Version uploaded",
+    "product.settings": "Settings",
+    "product.settingsIntro": "Resources for this installation.",
+    "product.resources": "Resources",
+    "product.designSystemHint": "Explore the Byturn identity, components and visual guidelines.",
+    "product.openDesignSystem": "Open design system"
   },
   "pt-BR": {
     "app.title": "Byturn | Sistema de design",
@@ -1269,6 +1274,11 @@
     "product.error.CANNOT_DISABLE_SELF": "Você não pode desativar sua própria conta.",
     "product.error.JSON_REQUIRED": "Não foi possível enviar a solicitação. Recarregue e tente novamente.",
     "product.error.METHOD_NOT_ALLOWED": "Esta ação está indisponível.",
-    "product.version.uploaded": "Versão enviada"
+    "product.version.uploaded": "Versão enviada",
+    "product.settings": "Configurações",
+    "product.settingsIntro": "Recursos desta instalação.",
+    "product.resources": "Recursos",
+    "product.designSystemHint": "Consulte a identidade, os componentes e as diretrizes visuais da Byturn.",
+    "product.openDesignSystem": "Abrir design system"
   }
 }

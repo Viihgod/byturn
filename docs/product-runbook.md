@@ -6,6 +6,8 @@ This build implements one agency per installation, with a React client, Node.js 
 
 Open http://127.0.0.1:4174 on the computer running the server. The design-system guide remains available at http://127.0.0.1:4174/?guide=1 . English is the default; use the header for Portuguese and light/dark mode.
 
+Inside the signed-in workspace, open Settings in the sidebar, then Resources → Open design system. Settings opens as a modal and preserves the current project; the guide opens in a separate tab.
+
 The explicit local demo seed uses password `Byturn-review-2026!` for these fictional accounts:
 
 | Email | Account | Project access |

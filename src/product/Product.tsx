@@ -6,6 +6,7 @@ import {
   Check,
   DownloadSimple,
   FolderSimple,
+  GearSix,
   LinkSimple,
   Moon,
   Plus,
@@ -331,11 +332,32 @@ function Workspace() {
                 {p('team')}
               </a>
             )}
-            <a href="?guide=1" target="_blank" rel="noreferrer">
-              <ShieldCheck />
-              {p('designSystem')}
-              <ArrowUpRight />
-            </a>
+            <BtDialog
+              title={p('settings')}
+              description={p('settingsIntro')}
+              closeLabel={p('close')}
+              trigger={
+                <button className="p-settings-trigger">
+                  <GearSix />
+                  {p('settings')}
+                </button>
+              }
+            >
+              <section className="p-settings-resources">
+                <h3>{p('resources')}</h3>
+                <div className="p-settings-resource">
+                  <ShieldCheck size={24} aria-hidden="true" />
+                  <div>
+                    <h4>{p('designSystem')}</h4>
+                    <p>{p('designSystemHint')}</p>
+                  </div>
+                </div>
+                <a className="p-settings-link" href="?guide=1" target="_blank" rel="noreferrer">
+                  {p('openDesignSystem')}
+                  <ArrowUpRight aria-hidden="true" />
+                </a>
+              </section>
+            </BtDialog>
           </nav>
           <div className="p-person">
             <span className="p-avatar">{user?.name.slice(0, 1)}</span>

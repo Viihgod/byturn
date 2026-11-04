@@ -1,5 +1,7 @@
 # Product review — 2026-11-03
 
+Navigation update: the sidebar now opens Settings as a modal. Its Resources section links to the design-system guide in a separate tab; the guide is no longer a primary navigation item. The same Figma file has corrected navigation in all four internal screens and two additional Settings overlay scenes (light/dark), bringing the total to ten frames. Browser QA confirmed Escape/focus return, the guide destination, translation and 390 px modal layout.
+
 Steps 1–3 authorized by the owner are implemented for local review on branch `feat/self-hosted-review`. No public deployment, repository publication, merge or supported installer release is included.
 
 ## Review surfaces

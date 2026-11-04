@@ -78,7 +78,8 @@
   flex-direction: column;
   gap: 6px;
 }
-.p-sidebar nav a {
+.p-sidebar nav a,
+.p-sidebar nav .p-settings-trigger {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -91,8 +92,50 @@
   color: var(--bt-selected-text);
   background: var(--bt-selected-fill);
 }
-.p-sidebar nav a:hover {
+.p-sidebar nav a:hover,
+.p-sidebar nav .p-settings-trigger:hover {
   background: var(--bt-surface-raised);
+}
+.p-settings-trigger {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.p-settings-resources h3 {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--bt-text-muted);
+  margin: 24px 0 16px;
+}
+.p-settings-resource {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.p-settings-resource > svg {
+  color: var(--bt-text-muted);
+  flex: none;
+}
+.p-settings-resource h4 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 500;
+}
+.p-settings-resource p {
+  margin: 0;
+  color: var(--bt-text-muted);
+  font-size: 13px;
+}
+.p-settings-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 20px 0 4px 36px;
+  color: var(--bt-text);
+  font-size: 14px;
 }
 .p-sidebar nav svg {
   width: 18px;
@@ -885,15 +928,17 @@
   }
   .p-sidebar nav {
     flex-direction: row;
-    margin-left: auto;
+    width: 100%;
+    margin-left: 0;
     gap: 4px;
   }
-  .p-sidebar nav a {
+  .p-sidebar nav a,
+  .p-sidebar nav .p-settings-trigger {
     font-size: 12px;
     padding: 10px;
-  }
-  .p-sidebar nav a:last-child {
-    display: none;
+    width: auto;
+    flex: none;
+    white-space: nowrap;
   }
   .p-topbar {
     min-height: 56px;
@@ -1067,7 +1112,8 @@
   .bt-dialog .p-field input {
     max-width: 100%;
   }
-  .p-sidebar nav a {
+  .p-sidebar nav a,
+  .p-sidebar nav .p-settings-trigger {
     padding: 8px;
     gap: 6px;
   }
