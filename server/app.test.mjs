@@ -125,6 +125,186 @@ async function fixture(t, options = {}) {
   }
 }
 
+test('version-specific pins support guest/team replies and reject cross-version or invalid anchors', async (t) => {
+  const f = await fixture(t)
+  const uploaded = (await f.upload()).data
+  const { token, id: linkId } = await f.link()
+  const path = `/api/assets/${uploaded.assetId}/versions/${uploaded.versionId}/comments`
+  const pin = await f.request(path, {
+    token,
+    body: { name: 'Taylor', body: 'Please adjust this phrase.', anchor: { x: 0.72, y: 0.25 } },
+  })
+  assert.equal(pin.status, 200)
+  assert.ok(pin.data.id)
+  const editorCookie = await f.login(f.editor.email)
+  assert.equal(
+    (
+      await f.request(path, {
+        cookie: editorCookie,
+        body: { body: 'We will update it.', replyTo: pin.data.id },
+      })
+    ).status,
+    200,
+  )
+  assert.equal(
+    (
+      await f.request(path, {
+        token,
+        body: { name: 'Taylor', body: 'Thank you.', replyTo: pin.data.id },
+      })
+    ).status,
+    200,
+  )
+  for (const anchor of [
+    null,
+    { x: -0.01, y: 0.2 },
+    { x: 1.01, y: 0.2 },
+    { x: '0.5', y: 0.2 },
+    { x: 0.5 },
+    [],
+  ])
+    assert.equal(
+      (await f.request(path, { token, body: { name: 'Taylor', body: 'Invalid', anchor } })).status,
+      400,
+    )
+  assert.equal(
+    (
+      await f.request(path, {
+        cookie: await f.login(f.other.email),
+        body: { body: 'Cross-project', anchor: { x: 0.1, y: 0.1 } },
+      })
+    ).status,
+    404,
+  )
+  const next = (await f.upload(uploaded.assetId)).data
+  assert.equal(
+    (
+      await f.request(`/api/assets/${uploaded.assetId}/versions/${next.versionId}/comments`, {
+        cookie: editorCookie,
+        body: { body: 'Wrong version', replyTo: pin.data.id },
+      })
+    ).status,
+    400,
+  )
+  await f.restart()
+  const dto = (await f.request('/api/review', { token })).data
+  const stored = dto.events.find((e) => e.id === pin.data.id)
+  assert.equal(stored.anchorX, 0.72)
+  assert.equal(stored.anchorY, 0.25)
+  assert.equal(stored.versionId, uploaded.versionId)
+  assert.equal(stored.party, 'client')
+  const replies = dto.events.filter((e) => e.parentId === pin.data.id)
+  assert.deepEqual(
+    replies.map((e) => e.party),
+    ['team', 'client'],
+  )
+  assert.ok(replies.every((e) => e.anchorX === null && e.versionId === uploaded.versionId))
+  await f.request('/api/links/' + linkId, { cookie: f.cookie, method: 'DELETE' })
+  assert.equal(
+    (
+      await f.request(path, {
+        token,
+        body: { name: 'Taylor', body: 'Revoked', replyTo: pin.data.id },
+      })
+    ).status,
+    404,
+  )
+})
+
+test('internal accounts edit deliveries but cannot submit client approval, and clients cannot rename assets', async (t) => {
+  const f = await fixture(t)
+  const up = (await f.upload()).data
+  const editor = await f.login(f.editor.email)
+  const client = await f.login(f.client.email)
+  for (const cookie of [f.cookie, editor])
+    assert.equal(
+      (
+        await f.request(`/api/assets/${up.assetId}/versions/${up.versionId}/decision`, {
+          cookie,
+          body: { state: 'approved', revision: 0 },
+        })
+      ).status,
+      403,
+    )
+  assert.equal(
+    (
+      await f.request('/api/assets/' + up.assetId, {
+        cookie: client,
+        method: 'PATCH',
+        body: { name: 'Client overwrite' },
+      })
+    ).status,
+    403,
+  )
+  assert.equal(
+    (
+      await f.request('/api/assets/' + up.assetId, {
+        cookie: editor,
+        method: 'PATCH',
+        body: { name: 'Revised delivery' },
+      })
+    ).status,
+    200,
+  )
+  const saved = (await f.request('/api/projects/' + f.project, { cookie: client })).data
+  assert.equal(saved.assets[0].name, 'Revised delivery')
+  assert.equal(saved.assets[0].currentVersion, up.versionId)
+  assert.equal(
+    (
+      await f.request(`/api/assets/${up.assetId}/versions/${up.versionId}/decision`, {
+        cookie: client,
+        body: { state: 'approved', revision: 0 },
+      })
+    ).status,
+    200,
+  )
+})
+
+test('additive migration preserves legacy comments, original files and active sessions', async (t) => {
+  const f = await fixture(t)
+  const up = (await f.upload()).data
+  f.app.db.exec(
+    'DROP TABLE events; CREATE TABLE events(id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),asset_id TEXT,version_id TEXT,type TEXT NOT NULL,body TEXT NOT NULL,actor TEXT NOT NULL,identity TEXT NOT NULL,created TEXT NOT NULL); PRAGMA user_version=0;',
+  )
+  f.app.db
+    .prepare('INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?)')
+    .run(
+      'historic-comment',
+      f.project,
+      up.assetId,
+      up.versionId,
+      'comment',
+      'Existing feedback',
+      'Original client',
+      'declared',
+      new Date().toISOString(),
+    )
+  await f.restart()
+  const dto = (await f.request('/api/projects/' + f.project, { cookie: f.cookie })).data
+  const old = dto.events.find((e) => e.id === 'historic-comment')
+  assert.equal(old.body, 'Existing feedback')
+  assert.equal(old.anchorX, null)
+  assert.equal(old.parentId, null)
+  assert.equal(old.party, 'unknown')
+  assert.deepEqual(
+    (
+      await f.request(`/api/assets/${up.assetId}/versions/${up.versionId}/file`, {
+        cookie: f.cookie,
+      })
+    ).data,
+    f.image,
+  )
+  assert.equal(
+    (
+      await f.request(`/api/assets/${up.assetId}/versions/${up.versionId}/comments`, {
+        cookie: f.cookie,
+        body: { body: 'A new marker', anchor: { x: 0, y: 1 } },
+      })
+    ).status,
+    200,
+  )
+})
+
 test('persistent multi-session V1 change request → V2 approval → download → revocation preserves history', async (t) => {
   const f = await fixture(t)
   const a = await f.upload()

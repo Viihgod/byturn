@@ -55,6 +55,12 @@ The allowance is cumulative disk usage, not a monthly quota. PNG/JPEG/WebP origi
 
 ## What is working
 
+Internal delivery management now offers Edit delivery, Replace image, Share review and a client conversation panel. Replacement creates and selects a new immutable version. Editing changes the delivery name, not the image's pixels. Internal accounts no longer get client approval controls; those belong to a client reviewer or guest link.
+
+Choose **Mark artwork**, then click/tap the image to write a location-specific comment. Keyboard users can activate the placement surface to start a center marker. Hover a marker to preview, or activate it to reply. Sidebar annotation links locate the same thread on the image. Both sides can create markers and reply. Locations are percentages of the actual image, so viewport resizing preserves the marked point. Old markers remain on the old version.
+
+The local Weekend poster fixture now has V3, a team marker on its date and a guest reply; V2 retains the earlier guest marker and team response. These are fictional QA messages. No external message was sent. A private pre-migration backup was created under ignored `.data-backups/` before restarting the local server.
+
 Administrators create projects/accounts, disable/enable accounts, reset passwords and grant/remove viewer, editor or reviewer access per project. A member initially sees nothing until granted access. Client accounts can be viewers or reviewers; creating one is optional. Tags/search/status filters organize visible work and never grant access.
 
 Editors upload original images and immutable numbered versions, comment, create links and revoke them. Reviewers comment and decide on the current version. A change request requires an explanation. Approval is bound to that exact version; a new upload starts awaiting review. The API rejects decisions based on a replaced version or stale decision revision. Server changes appear in other open sessions on a 10-second refresh interval.

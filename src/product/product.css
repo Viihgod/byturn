@@ -532,10 +532,203 @@
   margin: 0;
 }
 .p-review-title {
+  position: relative;
+  margin-top: 32px;
   display: flex;
   align-items: center;
   gap: 20px;
   margin-bottom: 20px;
+}
+.p-review-mode-label {
+  position: absolute;
+  left: 0;
+  top: -24px;
+}
+.p-review-intro {
+  font-size: 13px;
+  color: var(--bt-text-muted);
+}
+.p-annotation-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+.p-annotation-toolbar > span {
+  font-size: 12px;
+  color: var(--bt-text-muted);
+}
+.p-artwork-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+.p-image-plane {
+  position: relative;
+  flex: none;
+  max-width: 100%;
+}
+.p-image-plane img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+.p-pin-placement {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.p-pin-placement:focus-visible {
+  outline: 2px dashed var(--bt-focus);
+  outline-offset: -3px;
+}
+.p-art-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: white;
+  padding: 0;
+  cursor: pointer;
+  z-index: 2;
+  border-radius: 50%;
+}
+.p-art-pin > span {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: rgb(20 20 20 / 0.65);
+  border: 1px solid rgb(255 255 255 / 0.7);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px #0004;
+}
+.p-art-pin svg {
+  width: 18px;
+  height: 18px;
+}
+.p-art-pin small {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  background: #141414;
+  color: white;
+  min-width: 16px;
+  padding: 0 3px;
+  border-radius: 8px;
+  font-size: 10px;
+}
+.p-art-pin:hover > span,
+.p-art-pin:focus-visible > span,
+.p-art-pin[data-state='open'] > span {
+  background: var(--bt-action-fill);
+  border-color: var(--bt-action-text);
+  color: var(--bt-action-text);
+}
+.p-draft-pin > span {
+  background: var(--bt-action-fill);
+  color: var(--bt-action-text);
+}
+.p-annotation-popover {
+  width: min(320px, calc(100vw - 32px));
+  max-height: min(540px, calc(100dvh - 32px), var(--radix-popover-content-available-height, 540px));
+  overflow: auto;
+  background: var(--bt-surface);
+  color: var(--bt-text);
+  border: 1px solid var(--bt-border);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: var(--bt-shadow);
+  z-index: var(--bt-z-popover);
+  overscroll-behavior: contain;
+}
+.p-pin-popover-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+.p-pin-arrow {
+  fill: var(--bt-surface);
+}
+.p-thread-location {
+  font-size: 11px;
+  color: var(--bt-text-muted);
+  margin-bottom: 12px;
+}
+.p-thread-location button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  padding: 4px 0;
+  border: 0;
+  color: var(--bt-text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font: inherit;
+}
+.p-thread-message {
+  padding: 12px 0;
+}
+.p-thread-message + .p-thread-message {
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 2px solid var(--bt-border-muted);
+}
+.p-thread-message[data-party='team'] .p-avatar {
+  color: var(--bt-studio-text);
+}
+.p-thread-message[data-party='client'] .p-avatar {
+  color: var(--bt-client-text);
+}
+.p-thread-message p,
+.p-timeline .p-thread-message p {
+  margin: 10px 0 4px 40px;
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.p-comment-thread .p-message-form {
+  margin-top: 12px;
+}
+.p-message-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.p-message-form .p-actions {
+  justify-content: flex-end;
+}
+.p-message-form .p-error {
+  font-size: 12px;
+  margin: 0;
+  padding: 8px;
+  border-radius: 4px;
+}
+@media (max-width: 520px) {
+  .p-annotation-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
 }
 .p-review-title h1 {
   font-size: 28px;

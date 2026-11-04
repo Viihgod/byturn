@@ -1,5 +1,17 @@
 # Product review — 2026-11-03
 
+## Review roles and artwork annotations — 2026-11-04
+
+The running app separates internal delivery management from client review. Administrator/editor accounts get name editing, replacement as a new version, sharing and a client conversation. Approval/change requests belong to a client reviewer or review link and are rejected by the API for internal accounts. New member grants are viewer/editor; client grants are viewer/reviewer.
+
+Both writable sides can place translucent image markers, preview on hover, activate and reply. Coordinates refer to the actual image rectangle; threads belong to one exact version. This iteration changes the running app; the prior composed Figma frames have not been rebuilt for annotations.
+
+The complete check passed: **60** frontend/guide/coordinate tests, **10** tooling/archive tests and **9** server integration tests, plus lint, TypeScript and production build. New tests cover image fitting, persistence, replies, invalid coordinates, cross-project/version access, revocation, internal approval rejection, renaming and legacy-schema migration. Later popover placement/identity/focus refinements received fresh lint/build and browser inspection.
+
+Browser flow on local fixtures: guest pin on V2 → administrator reply → delivery edit → replacement selecting V3 with no inherited pins → team pin on V3 → guest reply visible to designer. Neither admin nor designer had an approval button. A desktop marker center `(0.348039, 0.859626)` became `(0.348060, 0.859644)` in a 390 px viewport, within sub-pixel rounding. The thread popover stayed inside the viewport (x=54, right=374). Keyboard activation was checked. These are browser viewport checks, not a claim of physical-phone testing.
+
+The local database and originals were backed up before an additive migration. Existing versions and prior decisions were preserved. Deployment and supported installers remain later work.
+
 Latest Settings refinement: the trigger now belongs to the sidebar footer directly above the account/avatar. Its modal is anchored 12 px to the right, aligned to the trigger's bottom edge, with a dedicated black backdrop at 30% opacity. On narrow screens it opens below the trigger with viewport collision handling. This change is scoped to Settings; other dialogs keep their existing presentation. The six internal Figma sidebars and both Settings overlay scenes were updated in the existing file. Browser checks verified exact backdrop alpha, anchor/account geometry, Escape/focus return, outside-click dismissal and a fully visible 358 px modal in a 390 px viewport.
 
 Navigation update: the sidebar now opens Settings as a modal. Its Resources section links to the design-system guide in a separate tab; the guide is no longer a primary navigation item. The same Figma file has corrected navigation in all four internal screens and two additional Settings overlay scenes (light/dark), bringing the total to ten frames. Browser QA confirmed Escape/focus return, the guide destination, translation and 390 px modal layout.

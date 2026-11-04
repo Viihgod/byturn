@@ -32,10 +32,15 @@ export type Project = {
     actor: string
     identity: string
     created: string
+    anchorX: number | null
+    anchorY: number | null
+    parentId: string | null
+    party: 'team' | 'client' | 'unknown'
   }[]
   links: { id: string; label: string; revoked: string | null; created: string }[]
   grants: { userId: string; name: string; role: string; permission: string }[]
 }
+export type ReviewEvent = Project['events'][number]
 export class ApiError extends Error {
   code: string
   status: number

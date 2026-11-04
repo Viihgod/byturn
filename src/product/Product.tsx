@@ -8,6 +8,8 @@ import {
   FolderSimple,
   LinkSimple,
   Moon,
+  MapPin,
+  PencilSimple,
   Plus,
   ShieldCheck,
   SignOut,
@@ -21,6 +23,8 @@ import { LocaleProvider } from '../i18n/context'
 import { useTranslation } from '../i18n/locale'
 import { api, ApiError, filePath, imagePayload } from './api'
 import { Settings } from './Settings'
+import { Artwork, CommentThread } from './Artwork'
+import type { CommentInput } from './Artwork'
 import type { Asset, Project, User, Version } from './api'
 import '../design-system/components.css'
 import './product.css'
@@ -520,19 +524,31 @@ function Projects({
     </main>
   )
 }
-function Upload({ project, asset, pending, act }: { project: Project; asset?: Asset } & Actions) {
+function Upload({
+  project,
+  asset,
+  pending,
+  act,
+  onUploaded,
+  replace = false,
+}: {
+  project: Project
+  asset?: Asset
+  onUploaded?: (version: string) => void
+  replace?: boolean
+} & Actions) {
   const { p } = useCopy()
   const [open, setOpen] = useState(false)
   return (
     <Dialog
       open={open}
       onOpenChange={setOpen}
-      title={p(asset ? 'newVersion' : 'upload')}
+      title={p(replace ? 'replaceImage' : asset ? 'newVersion' : 'upload')}
       description={p('uploadHint')}
       trigger={
         <>
           <UploadSimple />
-          {p(asset ? 'newVersion' : 'upload')}
+          {p(replace ? 'replaceImage' : asset ? 'newVersion' : 'upload')}
         </>
       }
     >
@@ -543,7 +559,7 @@ function Upload({ project, asset, pending, act }: { project: Project; asset?: As
           const data = new FormData(form)
           const file = data.get('file') as File
           void act(async () => {
-            await api(`/projects/${project.id}/uploads`, {
+            const uploaded = await api<{ versionId: string }>(`/projects/${project.id}/uploads`, {
               body: {
                 ...(await imagePayload(file)),
                 name: asset?.name ?? data.get('name'),
@@ -551,6 +567,7 @@ function Upload({ project, asset, pending, act }: { project: Project; asset?: As
               },
             })
             setOpen(false)
+            onUploaded?.(uploaded.versionId)
           }, 'uploaded')
         }}
       >
@@ -766,8 +783,12 @@ function Review({
   const [name, setName] = useState('')
   const [body, setBody] = useState('')
   const [decision, setDecision] = useState(false)
-  const edit = !token && ['admin', 'editor'].includes(project.permission)
-  const review = Boolean(token) || ['admin', 'reviewer'].includes(project.permission)
+  const [pinMode, setPinMode] = useState(false)
+  const [activePin, setActivePin] = useState<string | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
+  const internal = !token && user?.role !== 'client'
+  const edit = internal && ['admin', 'editor'].includes(project.permission)
+  const review = !internal && project.permission === 'reviewer'
   const comment = project.permission !== 'viewer'
   const latest = version.id === asset.currentVersion
   const back = token ? `#review/${token}` : `#project/${project.id}`
@@ -792,15 +813,84 @@ function Review({
       setDecision(false)
     }
   }
+  const versionEvents = project.events.filter((e) => e.versionId === version.id)
+  const annotations = versionEvents.filter(
+    (e) => e.type === 'comment' && !e.parentId && e.anchorX !== null && e.anchorY !== null,
+  )
+  async function saveComment(input: CommentInput) {
+    return act(
+      () =>
+        api(filePath(asset.id, version.id).replace('/file', '/comments'), {
+          token,
+          body: { ...input, name },
+        }),
+      input.replyTo ? 'replySaved' : 'commentSaved',
+    )
+  }
+  const commentActions = {
+    save: saveComment,
+    pending,
+    writable: comment,
+    guest: !user,
+    name,
+    setName,
+  }
   return (
-    <main className="p-review">
+    <main className="p-review" data-review-mode={internal ? 'team' : 'client'}>
       <div className="p-review-heading">
         <a className="p-back" href={back}>
           <ArrowLeft />
           {project.name}
         </a>
         <div className="p-actions">
-          {edit && <Upload project={project} asset={asset} act={act} pending={pending} />}
+          {edit && (
+            <>
+              <Dialog
+                title={p('editDelivery')}
+                description={p('editDeliveryHint')}
+                open={editOpen}
+                onOpenChange={setEditOpen}
+                trigger={
+                  <>
+                    <PencilSimple />
+                    {p('editDelivery')}
+                  </>
+                }
+              >
+                <form
+                  onSubmit={(e) => {
+                    const body = readForm(e)
+                    void act(async () => {
+                      await api('/assets/' + asset.id, { method: 'PATCH', body })
+                      setEditOpen(false)
+                    })
+                  }}
+                >
+                  <Field label={p('assetName')}>
+                    <input name="name" defaultValue={asset.name} required maxLength={200} />
+                  </Field>
+                  <BtButton type="submit" pending={pending}>
+                    {p('saveChanges')}
+                  </BtButton>
+                </form>
+              </Dialog>
+              <Upload
+                project={project}
+                asset={asset}
+                act={act}
+                pending={pending}
+                replace
+                onUploaded={(id) => {
+                  setSelected(id)
+                  setPinMode(false)
+                  setActivePin(null)
+                  setBody('')
+                  setDecision(false)
+                }}
+              />
+              <Sharing project={project} act={act} pending={pending} />
+            </>
+          )}
           {latest && version.state === 'approved' && (
             <BtButton
               variant="secondary"
@@ -827,6 +917,9 @@ function Review({
         </div>
       </div>
       <div className="p-review-title">
+        <span className="p-review-mode-label p-eyebrow">
+          {p(internal ? 'teamWorkspace' : 'clientReview')}
+        </span>
         <div>
           <span className="p-eyebrow">{project.client}</span>
           <h1>{asset.name}</h1>
@@ -839,6 +932,8 @@ function Review({
               setSelected(e.target.value)
               setBody('')
               setDecision(false)
+              setPinMode(false)
+              setActivePin(null)
             }}
           >
             {asset.versions.map((v) => (
@@ -851,10 +946,37 @@ function Review({
         </Field>
       </div>
       {!latest && <p className="p-history-note">{p('historical')}</p>}
+      <p className="p-review-intro">
+        {p(internal ? (edit ? 'teamReviewIntro' : 'teamReadIntro') : 'clientReviewIntro')}
+      </p>
+      <div className="p-annotation-toolbar">
+        {comment && (
+          <BtButton
+            variant={pinMode ? 'primary' : 'secondary'}
+            aria-pressed={pinMode}
+            onClick={() => setPinMode(!pinMode)}
+          >
+            <MapPin />
+            {p(pinMode ? 'cancelMarking' : 'markArtwork')}
+          </BtButton>
+        )}
+        <span>{p(pinMode ? 'pinInstructions' : 'pinHint')}</span>
+      </div>
       <div className="p-review-grid">
         <section className="p-preview" aria-label={p('preview')}>
           <div className="p-artboard">
-            <Image asset={asset.id} version={version.id} token={token} />
+            <Artwork
+              key={version.id}
+              asset={asset.id}
+              version={version.id}
+              token={token}
+              events={versionEvents}
+              actions={commentActions}
+              pinMode={pinMode}
+              setPinMode={setPinMode}
+              activePin={activePin}
+              setActivePin={setActivePin}
+            />
           </div>
           <footer>
             {version.filename}
@@ -865,7 +987,7 @@ function Review({
         </section>
         <aside className="p-discussion">
           <div className="p-discussion-title">
-            <h2>{p('feedback')}</h2>
+            <h2>{p(internal ? 'clientConversation' : 'feedback')}</h2>
             <span>{events.length}</span>
           </div>
           {comment ? (
@@ -891,7 +1013,9 @@ function Review({
                   {p('commentAs')} <strong>{user.name}</strong>
                 </p>
               )}
-              <Field label={p(decision ? 'changeDetails' : 'comment')}>
+              <Field
+                label={p(decision ? 'changeDetails' : internal ? 'messageToClient' : 'comment')}
+              >
                 <textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
@@ -903,7 +1027,7 @@ function Review({
               </Field>
               <div className="p-actions">
                 <BtButton type="submit" variant="secondary" pending={pending}>
-                  {p('sendComment')}
+                  {p(internal ? 'sendToClient' : 'sendComment')}
                 </BtButton>
                 {decision && (
                   <BtButton
@@ -949,27 +1073,50 @@ function Review({
             </div>
           )}
           <div className="p-timeline">
-            {events.map((event) => (
-              <article key={event.id}>
-                <div className="p-timeline-head">
-                  <span className="p-avatar">{event.actor.slice(0, 1)}</span>
-                  <div>
-                    <strong>{event.actor}</strong>
-                    <small>
-                      {p(event.identity === 'declared' ? 'declared' : 'account')} ·{' '}
-                      {new Date(event.created).toLocaleString(locale, {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </small>
-                  </div>
-                </div>
-                <span className="p-event-type">{p(event.type)}</span>
-                {event.body && <p>{event.body}</p>}
-              </article>
-            ))}
+            {events
+              .filter((event) => !event.parentId)
+              .map((event) =>
+                event.type === 'comment' ? (
+                  <article key={event.id}>
+                    <CommentThread
+                      root={event}
+                      replies={versionEvents.filter((reply) => reply.parentId === event.id)}
+                      actions={commentActions}
+                      number={
+                        event.anchorX !== null && event.anchorY !== null
+                          ? annotations.findIndex((item) => item.id === event.id) + 1
+                          : undefined
+                      }
+                      onLocate={() => {
+                        setActivePin(event.id)
+                        document
+                          .querySelector('.p-image-plane')
+                          ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+                      }}
+                    />
+                  </article>
+                ) : (
+                  <article key={event.id}>
+                    <div className="p-timeline-head">
+                      <span className="p-avatar">{event.actor.slice(0, 1)}</span>
+                      <div>
+                        <strong>{event.actor}</strong>
+                        <small>
+                          {p(event.identity === 'declared' ? 'declared' : 'account')} ·{' '}
+                          {new Date(event.created).toLocaleString(locale, {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </small>
+                      </div>
+                    </div>
+                    <span className="p-event-type">{p(event.type)}</span>
+                    {event.body && <p>{event.body}</p>}
+                  </article>
+                ),
+              )}
           </div>
         </aside>
       </div>
@@ -1160,7 +1307,7 @@ function Admin({
           </Field>
           <Field label={p('permission')}>
             <select value={permission} onChange={(e) => setPermission(e.target.value)}>
-              {['viewer', ...(selected?.role === 'client' ? [] : ['editor']), 'reviewer'].map(
+              {(selected?.role === 'client' ? ['viewer', 'reviewer'] : ['viewer', 'editor']).map(
                 (role) => (
                   <option key={role} value={role}>
                     {p(role + 'Detail')}

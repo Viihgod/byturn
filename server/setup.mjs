@@ -65,7 +65,9 @@ try {
         )
         .run(version, asset, name + '.png', 'image/png', bytes.length, version, date)
       app.db
-        .prepare('INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?)')
+        .prepare(
+          'INSERT INTO events(id,project_id,asset_id,version_id,type,body,actor,identity,created) VALUES(?,?,?,?,?,?,?,?,?)',
+        )
         .run(
           randomUUID(),
           project,

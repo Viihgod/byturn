@@ -61,6 +61,30 @@ export function createApplication({
     CREATE INDEX IF NOT EXISTS events_project ON events(project_id,created);
     CREATE INDEX IF NOT EXISTS versions_asset ON versions(asset_id);
   `)
+  // Additive migration: preserve existing accounts, events and original files.
+  const eventColumns = new Set(
+    db
+      .prepare('PRAGMA table_info(events)')
+      .all()
+      .map((column) => column.name),
+  )
+  db.exec('BEGIN IMMEDIATE')
+  try {
+    for (const [column, definition] of [
+      ['anchor_x', 'REAL'],
+      ['anchor_y', 'REAL'],
+      ['parent_id', 'TEXT REFERENCES events(id)'],
+      ['party', "TEXT NOT NULL DEFAULT 'unknown'"],
+    ]) {
+      if (!eventColumns.has(column))
+        db.exec(`ALTER TABLE events ADD COLUMN ${column} ${definition}`)
+    }
+    db.exec('PRAGMA user_version=1; COMMIT')
+  } catch (error) {
+    db.exec('ROLLBACK')
+    db.close()
+    throw error
+  }
   const one = (sql, ...args) => db.prepare(sql).get(...args)
   const all = (sql, ...args) => db.prepare(sql).all(...args)
   const run = (sql, ...args) => db.prepare(sql).run(...args)
@@ -113,6 +137,7 @@ export function createApplication({
     }
     if (!ctx.user || !one('SELECT id FROM users WHERE id=? AND active=1', ctx.user.id))
       fail(401, 'UNAUTHORIZED')
+    if (action === 'review' && ctx.user.role !== 'client') fail(403, 'FORBIDDEN')
     if (ctx.user.role === 'admin') return 'admin'
     const grant = one(
       'SELECT permission FROM grants WHERE project_id=? AND user_id=?',
@@ -138,9 +163,10 @@ export function createApplication({
   }
   function event(ctx, project, asset, version, type, body = '', input = {}) {
     const who = actor(ctx, input)
+    const id = randomUUID()
     run(
-      'INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?)',
-      randomUUID(),
+      'INSERT INTO events(id,project_id,asset_id,version_id,type,body,actor,identity,created,anchor_x,anchor_y,parent_id,party) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
+      id,
       project,
       asset,
       version,
@@ -149,7 +175,12 @@ export function createApplication({
       who.name,
       who.identity,
       now(),
+      type === 'comment' ? (input.anchor?.x ?? null) : null,
+      type === 'comment' ? (input.anchor?.y ?? null) : null,
+      type === 'comment' ? (input.replyTo ?? null) : null,
+      ctx.link || ctx.user?.role === 'client' ? 'client' : 'team',
     )
+    return id
   }
   function projectDTO(ctx, id) {
     const permission = access(ctx, id)
@@ -166,7 +197,7 @@ export function createApplication({
       }),
     )
     const events = all(
-      'SELECT id,asset_id AS assetId,version_id AS versionId,type,body,actor,identity,created FROM events WHERE project_id=? ORDER BY rowid',
+      'SELECT id,asset_id AS assetId,version_id AS versionId,type,body,actor,identity,created,anchor_x AS anchorX,anchor_y AS anchorY,parent_id AS parentId,party FROM events WHERE project_id=? ORDER BY rowid',
       id,
     )
     const links =
@@ -384,6 +415,7 @@ export function createApplication({
           if (
             !['viewer', 'editor', 'reviewer'].includes(b.permission) ||
             (u.role === 'client' && b.permission === 'editor') ||
+            (u.role === 'member' && b.permission === 'reviewer') ||
             u.role === 'admin'
           )
             fail(400, 'INVALID_INPUT')
@@ -493,6 +525,19 @@ export function createApplication({
         })
         return reply(res, 201, { assetId: aid, versionId: vid })
       }
+      m = /^\/api\/assets\/([^/]+)$/.exec(path)
+      if (m && req.method === 'PATCH') {
+        const asset = one('SELECT * FROM assets WHERE id=?', m[1])
+        if (!asset) fail(404, 'NOT_FOUND')
+        const b = await bodyOf(req)
+        access(ctx, asset.project_id, 'edit')
+        const name = string(b.name)
+        transaction(() => {
+          run('UPDATE assets SET name=? WHERE id=?', name, asset.id)
+          event(ctx, asset.project_id, asset.id, null, 'asset.updated', name)
+        })
+        return reply(res, 200, {})
+      }
       m = /^\/api\/assets\/([^/]+)\/versions\/([^/]+)\/(comments|decision|file|download)$/.exec(
         path,
       )
@@ -526,11 +571,45 @@ export function createApplication({
         if (req.method === 'POST' && ['comments', 'decision'].includes(action)) {
           if (ctx.link) limit('review:' + ctx.link.id + ':' + req.socket.remoteAddress, 100)
           const b = await bodyOf(req)
-          transaction(() => {
+          const id = transaction(() => {
             access(ctx, asset.project_id, action === 'comments' ? 'comment' : 'review')
-            if (action === 'comments')
-              event(ctx, asset.project_id, asset.id, version.id, 'comment', string(b.body, 4000), b)
-            else {
+            if (action === 'comments') {
+              if (
+                b.anchor !== undefined &&
+                (!b.anchor ||
+                  typeof b.anchor !== 'object' ||
+                  Array.isArray(b.anchor) ||
+                  !['x', 'y'].every(
+                    (key) =>
+                      typeof b.anchor[key] === 'number' &&
+                      Number.isFinite(b.anchor[key]) &&
+                      b.anchor[key] >= 0 &&
+                      b.anchor[key] <= 1,
+                  ))
+              )
+                fail(400, 'INVALID_ANCHOR')
+              if (b.replyTo !== undefined) {
+                if (typeof b.replyTo !== 'string' || b.anchor !== undefined)
+                  fail(400, 'INVALID_REPLY')
+                const parent = one(
+                  "SELECT id FROM events WHERE id=? AND project_id=? AND asset_id=? AND version_id=? AND type='comment' AND parent_id IS NULL",
+                  b.replyTo,
+                  asset.project_id,
+                  asset.id,
+                  version.id,
+                )
+                if (!parent) fail(400, 'INVALID_REPLY')
+              }
+              return event(
+                ctx,
+                asset.project_id,
+                asset.id,
+                version.id,
+                'comment',
+                string(b.body, 4000),
+                b,
+              )
+            } else {
               const current = one('SELECT current_version FROM assets WHERE id=?', asset.id)
               const latest = one('SELECT revision FROM versions WHERE id=?', version.id)
               if (current.current_version !== version.id || b.revision !== latest.revision)
@@ -541,7 +620,7 @@ export function createApplication({
               event(ctx, asset.project_id, asset.id, version.id, b.state, note, b)
             }
           })
-          return reply(res, 200, {})
+          return reply(res, 200, { id })
         }
       }
       fail(404, 'NOT_FOUND')
