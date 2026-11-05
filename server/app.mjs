@@ -48,6 +48,10 @@ export function createApplication({
   const root = resolve(dataDir)
   mkdirSync(join(root, 'files'), { recursive: true })
   const db = new DatabaseSync(join(root, 'byturn.sqlite'))
+  if (db.prepare('PRAGMA user_version').get().user_version > 2) {
+    db.close()
+    throw new Error('This data directory requires a newer Byturn build')
+  }
   db.exec(`PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
     CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,name TEXT NOT NULL,email TEXT UNIQUE NOT NULL,password TEXT NOT NULL,role TEXT NOT NULL CHECK(role IN ('admin','member','client')),active INTEGER NOT NULL DEFAULT 1);
     CREATE TABLE IF NOT EXISTS sessions(hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),expires INTEGER NOT NULL);
@@ -57,6 +61,8 @@ export function createApplication({
     CREATE TABLE IF NOT EXISTS versions(id TEXT PRIMARY KEY,asset_id TEXT NOT NULL REFERENCES assets(id),number INTEGER NOT NULL,filename TEXT NOT NULL,mime TEXT NOT NULL,bytes INTEGER NOT NULL,path TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'review',revision INTEGER NOT NULL DEFAULT 0,created TEXT NOT NULL,UNIQUE(asset_id,number));
     CREATE TABLE IF NOT EXISTS links(id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),hash TEXT UNIQUE NOT NULL,label TEXT NOT NULL,revoked TEXT,created TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS events(id TEXT PRIMARY KEY,project_id TEXT NOT NULL REFERENCES projects(id),asset_id TEXT,version_id TEXT,type TEXT NOT NULL,body TEXT NOT NULL,actor TEXT NOT NULL,identity TEXT NOT NULL,created TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS version_images(id TEXT PRIMARY KEY,version_id TEXT NOT NULL REFERENCES versions(id),position INTEGER NOT NULL,filename TEXT NOT NULL,mime TEXT NOT NULL,bytes INTEGER NOT NULL,path TEXT NOT NULL);
+    CREATE INDEX IF NOT EXISTS images_version ON version_images(version_id,position);
     CREATE INDEX IF NOT EXISTS assets_project ON assets(project_id);
     CREATE INDEX IF NOT EXISTS events_project ON events(project_id,created);
     CREATE INDEX IF NOT EXISTS versions_asset ON versions(asset_id);
@@ -75,11 +81,16 @@ export function createApplication({
       ['anchor_y', 'REAL'],
       ['parent_id', 'TEXT REFERENCES events(id)'],
       ['party', "TEXT NOT NULL DEFAULT 'unknown'"],
+      ['image_id', 'TEXT REFERENCES version_images(id)'],
     ]) {
       if (!eventColumns.has(column))
         db.exec(`ALTER TABLE events ADD COLUMN ${column} ${definition}`)
     }
-    db.exec('PRAGMA user_version=1; COMMIT')
+    db.exec(`INSERT INTO version_images(id,version_id,position,filename,mime,bytes,path)
+      SELECT v.id,v.id,0,v.filename,v.mime,v.bytes,v.path FROM versions v WHERE NOT EXISTS(SELECT 1 FROM version_images i WHERE i.version_id=v.id);
+      UPDATE events SET image_id=(SELECT id FROM version_images WHERE version_id=events.version_id ORDER BY position LIMIT 1) WHERE anchor_x IS NOT NULL AND image_id IS NULL;
+      UPDATE events SET image_id=(SELECT root.image_id FROM events root WHERE root.id=events.parent_id) WHERE parent_id IS NOT NULL AND image_id IS NULL;
+      PRAGMA user_version=2; COMMIT`)
   } catch (error) {
     db.exec('ROLLBACK')
     db.close()
@@ -165,7 +176,7 @@ export function createApplication({
     const who = actor(ctx, input)
     const id = randomUUID()
     run(
-      'INSERT INTO events(id,project_id,asset_id,version_id,type,body,actor,identity,created,anchor_x,anchor_y,parent_id,party) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
+      'INSERT INTO events(id,project_id,asset_id,version_id,type,body,actor,identity,created,anchor_x,anchor_y,parent_id,party,image_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
       id,
       project,
       asset,
@@ -179,6 +190,7 @@ export function createApplication({
       type === 'comment' ? (input.anchor?.y ?? null) : null,
       type === 'comment' ? (input.replyTo ?? null) : null,
       ctx.link || ctx.user?.role === 'client' ? 'client' : 'team',
+      type === 'comment' ? (input.imageId ?? null) : null,
     )
     return id
   }
@@ -193,13 +205,34 @@ export function createApplication({
         versions: all(
           'SELECT id,number,filename,mime,bytes,state,revision,created FROM versions WHERE asset_id=? ORDER BY number DESC',
           a.id,
-        ),
+        ).map((version) => ({
+          ...version,
+          images: all(
+            'SELECT id,position,filename,mime,bytes FROM version_images WHERE version_id=? ORDER BY position',
+            version.id,
+          ),
+        })),
       }),
     )
     const events = all(
-      'SELECT id,asset_id AS assetId,version_id AS versionId,type,body,actor,identity,created,anchor_x AS anchorX,anchor_y AS anchorY,parent_id AS parentId,party FROM events WHERE project_id=? ORDER BY rowid',
+      'SELECT id,asset_id AS assetId,version_id AS versionId,type,body,actor,identity,created,anchor_x AS anchorX,anchor_y AS anchorY,parent_id AS parentId,party,image_id AS imageId FROM events WHERE project_id=? ORDER BY rowid',
       id,
     )
+    const counters = new Map()
+    for (const item of events) {
+      const prefix =
+        {
+          comment: 'C',
+          changes: 'R',
+          approved: 'A',
+          'version.uploaded': 'U',
+          'images.reordered': 'O',
+        }[item.type] ?? 'E'
+      const key = (item.versionId ?? item.assetId ?? id) + ':' + prefix
+      const count = (counters.get(key) ?? 0) + 1
+      counters.set(key, count)
+      item.reference = prefix + String(count).padStart(3, '0')
+    }
     const links =
       !ctx.link && ['admin', 'editor'].includes(permission)
         ? all(
@@ -263,14 +296,14 @@ export function createApplication({
     event(ctx, id, null, null, 'project.created')
     return { id }
   }
-  async function bodyOf(req) {
+  async function bodyOf(req, maximum = 6_800_000) {
     if (!String(req.headers['content-type'] ?? '').startsWith('application/json'))
       fail(415, 'JSON_REQUIRED')
     const chunks = []
     let size = 0
     for await (const chunk of req) {
       size += chunk.length
-      if (size > 6_800_000) fail(413, 'FILE_TOO_LARGE')
+      if (size > maximum) fail(413, maximum > 6_800_000 ? 'BATCH_TOO_LARGE' : 'FILE_TOO_LARGE')
       chunks.push(chunk)
     }
     try {
@@ -459,70 +492,106 @@ export function createApplication({
       }
       m = /^\/api\/projects\/([^/]+)\/uploads$/.exec(path)
       if (m && req.method === 'POST') {
-        const b = await bodyOf(req)
         const project = m[1]
         access(ctx, project, 'edit')
-        if (
-          typeof b.data !== 'string' ||
-          b.data.length > 6_666_668 ||
-          !/^[A-Za-z0-9+/]*={0,2}$/.test(b.data)
-        )
-          fail(400, 'INVALID_IMAGE')
-        const bytes = Buffer.from(b.data, 'base64')
-        if (!bytes.length || bytes.length > 5_000_000) fail(413, 'FILE_TOO_LARGE')
-        let metadata
-        try {
-          metadata = await sharp(bytes, { limitInputPixels: 24_000_000 }).metadata()
-          if (!['png', 'jpeg', 'webp'].includes(metadata.format) || metadata.pages > 1)
-            fail(400, 'INVALID_IMAGE')
-          await sharp(bytes, { limitInputPixels: 24_000_000 }).stats()
-        } catch {
-          fail(400, 'INVALID_IMAGE')
-        }
-        const filename = string(b.filename, 180)
-        const name = string(b.name ?? filename)
-        const vid = randomUUID()
-        const disk = join(root, 'files', vid)
-        const aid = transaction(() => {
-          access(ctx, project, 'edit')
+        const b = await bodyOf(req, 35_000_000)
+        const input = b.images === undefined ? [{ filename: b.filename, data: b.data }] : b.images
+        if (!Array.isArray(input) || !input.length || input.length > 20) fail(400, 'IMAGE_COUNT')
+        const images = []
+        let total = 0
+        for (const item of input) {
           if (
-            Number(one('SELECT COALESCE(SUM(bytes),0) AS size FROM versions').size) + bytes.length >
-            quota
+            !item ||
+            typeof item.data !== 'string' ||
+            item.data.length > 6_666_668 ||
+            !/^[A-Za-z0-9+/]*={0,2}$/.test(item.data)
           )
-            fail(413, 'STORAGE_FULL')
-          const asset = b.assetId
-            ? one('SELECT * FROM assets WHERE id=? AND project_id=?', b.assetId, project)
-            : null
-          if (b.assetId && !asset) fail(404, 'NOT_FOUND')
-          const assetId = asset?.id ?? randomUUID()
-          if (!asset) run('INSERT INTO assets VALUES(?,?,?,NULL)', assetId, project, name)
-          const number = Number(
-            one(
-              'SELECT COALESCE(MAX(number),0)+1 AS number FROM versions WHERE asset_id=?',
-              assetId,
-            ).number,
-          )
-          writeFileSync(disk, bytes, { flag: 'wx', mode: 0o600 })
+            fail(400, 'INVALID_IMAGE')
+          const bytes = Buffer.from(item.data, 'base64')
+          if (!bytes.length || bytes.length > 5_000_000) fail(413, 'FILE_TOO_LARGE')
+          total += bytes.length
+          if (total > 25_000_000) fail(413, 'BATCH_TOO_LARGE')
+          let metadata
           try {
+            metadata = await sharp(bytes, { limitInputPixels: 24_000_000 }).metadata()
+            if (!['png', 'jpeg', 'webp'].includes(metadata.format) || metadata.pages > 1)
+              fail(400, 'INVALID_IMAGE')
+            await sharp(bytes, { limitInputPixels: 24_000_000 }).stats()
+          } catch {
+            fail(400, 'INVALID_IMAGE')
+          }
+          images.push({
+            id: randomUUID(),
+            filename: string(item.filename, 180),
+            mime: 'image/' + metadata.format,
+            bytes,
+          })
+        }
+        const first = images[0]
+        const name = string(b.name ?? first.filename)
+        const vid = randomUUID()
+        const written = []
+        let aid
+        try {
+          aid = transaction(() => {
+            access(ctx, project, 'edit')
+            if (
+              Number(one('SELECT COALESCE(SUM(bytes),0) AS size FROM versions').size) + total >
+              quota
+            )
+              fail(413, 'STORAGE_FULL')
+            const asset = b.assetId
+              ? one('SELECT * FROM assets WHERE id=? AND project_id=?', b.assetId, project)
+              : null
+            if (b.assetId && !asset) fail(404, 'NOT_FOUND')
+            const assetId = asset?.id ?? randomUUID()
+            if (!asset) run('INSERT INTO assets VALUES(?,?,?,NULL)', assetId, project, name)
+            const number = Number(
+              one(
+                'SELECT COALESCE(MAX(number),0)+1 AS number FROM versions WHERE asset_id=?',
+                assetId,
+              ).number,
+            )
             run(
               'INSERT INTO versions(id,asset_id,number,filename,mime,bytes,path,created) VALUES(?,?,?,?,?,?,?,?)',
               vid,
               assetId,
               number,
-              filename,
-              'image/' + metadata.format,
-              bytes.length,
-              vid,
+              first.filename,
+              first.mime,
+              total,
+              first.id,
               now(),
             )
+            for (const [position, image] of images.entries()) {
+              const disk = join(root, 'files', image.id)
+              writeFileSync(disk, image.bytes, { flag: 'wx', mode: 0o600 })
+              written.push(disk)
+              run(
+                'INSERT INTO version_images VALUES(?,?,?,?,?,?,?)',
+                image.id,
+                vid,
+                position,
+                image.filename,
+                image.mime,
+                image.bytes.length,
+                image.id,
+              )
+            }
             run('UPDATE assets SET current_version=? WHERE id=?', vid, assetId)
             event(ctx, project, assetId, vid, 'version.uploaded', String(number))
-          } catch (e) {
-            unlinkSync(disk)
-            throw e
+            return assetId
+          })
+        } catch (error) {
+          for (const disk of written) {
+            try {
+              unlinkSync(disk)
+            } catch {
+              /* Preserve the transaction failure. */
+            }
           }
-          return assetId
-        })
+          throw error
+        }
         return reply(res, 201, { assetId: aid, versionId: vid })
       }
       m = /^\/api\/assets\/([^/]+)$/.exec(path)
@@ -538,41 +607,112 @@ export function createApplication({
         })
         return reply(res, 200, {})
       }
-      m = /^\/api\/assets\/([^/]+)\/versions\/([^/]+)\/(comments|decision|file|download)$/.exec(
-        path,
-      )
+      m = /^\/api\/assets\/([^/]+)\/versions\/([^/]+)\/images\/order$/.exec(path)
+      if (m && req.method === 'PUT') {
+        const asset = one('SELECT * FROM assets WHERE id=?', m[1])
+        const version = one('SELECT * FROM versions WHERE id=? AND asset_id=?', m[2], m[1])
+        if (!asset || !version) fail(404, 'NOT_FOUND')
+        access(ctx, asset.project_id, 'edit')
+        const b = await bodyOf(req)
+        transaction(() => {
+          const current = one('SELECT current_version FROM assets WHERE id=?', asset.id)
+          const live = one('SELECT state,revision FROM versions WHERE id=?', version.id)
+          if (live.state === 'approved') fail(409, 'VERSION_APPROVED')
+          if (current.current_version !== version.id || live.revision !== b.revision)
+            fail(409, 'STALE_VERSION')
+          const ids = all('SELECT id FROM version_images WHERE version_id=?', version.id).map(
+            (image) => image.id,
+          )
+          if (
+            !Array.isArray(b.imageIds) ||
+            b.imageIds.length !== ids.length ||
+            new Set(b.imageIds).size !== ids.length ||
+            !b.imageIds.every((id) => ids.includes(id))
+          )
+            fail(400, 'INVALID_ORDER')
+          b.imageIds.forEach((id, position) =>
+            run(
+              'UPDATE version_images SET position=? WHERE id=? AND version_id=?',
+              position,
+              id,
+              version.id,
+            ),
+          )
+          const first = one(
+            'SELECT filename,mime,path FROM version_images WHERE version_id=? ORDER BY position LIMIT 1',
+            version.id,
+          )
+          run(
+            'UPDATE versions SET filename=?,mime=?,path=?,revision=revision+1 WHERE id=?',
+            first.filename,
+            first.mime,
+            first.path,
+            version.id,
+          )
+          event(ctx, asset.project_id, asset.id, version.id, 'images.reordered')
+        })
+        return reply(res, 200, {})
+      }
+      m =
+        /^\/api\/assets\/([^/]+)\/versions\/([^/]+)(?:\/images\/([^/]+))?\/(comments|decision|file|download|thumbnail)$/.exec(
+          path,
+        )
       if (m) {
         const asset = one('SELECT * FROM assets WHERE id=?', m[1])
         const version = one('SELECT * FROM versions WHERE id=? AND asset_id=?', m[2], m[1])
         if (!asset || !version) fail(404, 'NOT_FOUND')
-        const action = m[3]
+        const action = m[4]
+        if (m[3] && !['file', 'download', 'thumbnail'].includes(action)) fail(404, 'NOT_FOUND')
         access(
           ctx,
           asset.project_id,
           action === 'comments' ? 'comment' : action === 'decision' ? 'review' : 'read',
         )
-        if (['file', 'download'].includes(action) && req.method === 'GET') {
+        if (['file', 'download', 'thumbnail'].includes(action) && req.method === 'GET') {
+          const image = m[3]
+            ? one('SELECT * FROM version_images WHERE id=? AND version_id=?', m[3], version.id)
+            : one(
+                'SELECT * FROM version_images WHERE version_id=? ORDER BY position LIMIT 1',
+                version.id,
+              )
+          if (!image) fail(404, 'NOT_FOUND')
+          if (action === 'thumbnail') {
+            const preview = await sharp(readFileSync(join(root, 'files', image.path)), {
+              limitInputPixels: 24_000_000,
+            })
+              .rotate()
+              .resize({ width: 240, height: 180, fit: 'inside', withoutEnlargement: true })
+              .webp({ quality: 75 })
+              .toBuffer()
+            access(ctx, asset.project_id, 'read')
+            res.writeHead(200, { 'Content-Type': 'image/webp', 'Content-Length': preview.length })
+            return res.end(preview)
+          }
           if (
             action === 'download' &&
             (version.state !== 'approved' || asset.current_version !== version.id)
           )
             fail(409, 'NOT_APPROVED')
           res.writeHead(200, {
-            'Content-Type': version.mime,
-            'Content-Length': version.bytes,
+            'Content-Type': image.mime,
+            'Content-Length': image.bytes,
             ...(action === 'download'
               ? {
-                  'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(version.filename)}`,
+                  'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(image.filename)}`,
                 }
               : {}),
           })
-          return res.end(readFileSync(join(root, 'files', version.path)))
+          return res.end(readFileSync(join(root, 'files', image.path)))
         }
         if (req.method === 'POST' && ['comments', 'decision'].includes(action)) {
           if (ctx.link) limit('review:' + ctx.link.id + ':' + req.socket.remoteAddress, 100)
           const b = await bodyOf(req)
           const id = transaction(() => {
             access(ctx, asset.project_id, action === 'comments' ? 'comment' : 'review')
+            const current = one('SELECT current_version FROM assets WHERE id=?', asset.id)
+            const live = one('SELECT state,revision FROM versions WHERE id=?', version.id)
+            if (live.state === 'approved') fail(409, 'VERSION_APPROVED')
+            if (current.current_version !== version.id) fail(409, 'STALE_VERSION')
             if (action === 'comments') {
               if (
                 b.anchor !== undefined &&
@@ -588,17 +728,29 @@ export function createApplication({
                   ))
               )
                 fail(400, 'INVALID_ANCHOR')
+              let imageId = null
               if (b.replyTo !== undefined) {
                 if (typeof b.replyTo !== 'string' || b.anchor !== undefined)
                   fail(400, 'INVALID_REPLY')
                 const parent = one(
-                  "SELECT id FROM events WHERE id=? AND project_id=? AND asset_id=? AND version_id=? AND type='comment' AND parent_id IS NULL",
+                  "SELECT id,image_id FROM events WHERE id=? AND project_id=? AND asset_id=? AND version_id=? AND type='comment' AND parent_id IS NULL",
                   b.replyTo,
                   asset.project_id,
                   asset.id,
                   version.id,
                 )
                 if (!parent) fail(400, 'INVALID_REPLY')
+                if (b.imageId !== undefined && b.imageId !== parent.image_id)
+                  fail(400, 'INVALID_IMAGE_REFERENCE')
+                imageId = parent.image_id
+              } else if (b.anchor !== undefined || b.imageId !== undefined) {
+                const images = all(
+                  'SELECT id FROM version_images WHERE version_id=? ORDER BY position',
+                  version.id,
+                )
+                imageId = b.imageId ?? (images.length === 1 ? images[0].id : null)
+                if (!images.some((image) => image.id === imageId))
+                  fail(400, 'INVALID_IMAGE_REFERENCE')
               }
               return event(
                 ctx,
@@ -607,13 +759,10 @@ export function createApplication({
                 version.id,
                 'comment',
                 string(b.body, 4000),
-                b,
+                { ...b, imageId },
               )
             } else {
-              const current = one('SELECT current_version FROM assets WHERE id=?', asset.id)
-              const latest = one('SELECT revision FROM versions WHERE id=?', version.id)
-              if (current.current_version !== version.id || b.revision !== latest.revision)
-                fail(409, 'STALE_VERSION')
+              if (b.revision !== live.revision) fail(409, 'STALE_VERSION')
               if (!['approved', 'changes'].includes(b.state)) fail(400, 'INVALID_INPUT')
               const note = b.state === 'changes' ? string(b.body, 4000) : ''
               run('UPDATE versions SET state=?,revision=revision+1 WHERE id=?', b.state, version.id)
@@ -629,7 +778,7 @@ export function createApplication({
       reply(res, e.status ?? 500, { error: e.code && e.status ? e.code : 'SERVER_ERROR' })
     }
   })
-  server.requestTimeout = 30_000
+  server.requestTimeout = 120_000
   server.headersTimeout = 15_000
   return {
     server,

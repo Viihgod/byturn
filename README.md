@@ -6,7 +6,7 @@ The local reference build uses React, Node.js 24, SQLite and private files on di
 
 ## Try locally
 
-Internal teams manage delivery names, replace images as new versions and respond to clients. Client review owns approval and change requests. Both sides can pin comments to the artwork and reply in version-specific threads; image-relative positions stay attached to the same point when the viewport changes.
+Internal teams manage delivery names, upload multiple images as ordered carousels, replace image sets as new versions and respond to clients. Multiple selection and file drop share a sortable upload queue; saved unapproved carousels also support ordering, with keyboard/touch alternatives. Client review owns approval and change requests. Approval closes the entire version, preventing repeated decisions or further review edits. Both sides can pin comments to individual images and reply in version-specific threads; stable image IDs preserve pins through reordering and relative positions survive viewport changes. Distinct team/client markers and typed activity references clarify the history.
 
 ```sh
 npm ci

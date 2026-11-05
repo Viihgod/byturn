@@ -36,9 +36,17 @@ New events store team/client context alongside account/declared identity. Legacy
 
 ## Version history
 
-Every piece belongs to one project. Each version is an immutable file with a numbered sequence. A new version starts in review and never inherits approval. Comments and decisions reference a specific version. Decisions for a superseded version are rejected as stale. Resolving a comment is not approval. A change request needs an explanation. An approved version remains an approved historical version; only a currently approved version can be downloaded as the current delivery. A new version does not erase earlier comments or approvals.
+Every piece belongs to one project. Each numbered version contains 1–20 immutable original images in an ordered carousel. A new version starts in review and never inherits approval. Comments and decisions reference a specific version. Writes to a superseded version are rejected as stale. Resolving a comment is not approval. A change request needs an explanation. An approved version remains an approved historical version; only a currently approved version offers the delivery download control. A new version does not erase earlier images, comments or approvals.
 
-An explicit request-changes decision on an approved current version reopens review, retaining the earlier approval event. This first version uses one final reviewer action rather than unanimity across multiple reviewers. Conflicting stale actions are detected with an expected revision counter; no silent overwrite of a newer decision.
+Approval is terminal for the entire version, covering every image. The server rejects repeated approval, further change requests, comments, replies and image reordering after approval. Editors can upload a new version to start another review. This first version uses one final reviewer action rather than unanimity across multiple reviewers. Conflicting stale actions are detected with an expected revision counter; no silent overwrite of a newer decision. Reordering increments that revision too, so a decision based on an older order must refresh.
+
+## Carousel and event identifiers — 2026-11-05
+
+Upload accepts multiple files from a chooser or a drop area. The pending queue and current unapproved carousel can be ordered with drag and drop; earlier/later buttons support keyboard and touch. Only administrators/project editors can reorder. An exact permutation of existing image IDs is required. Reordering never moves a pin to a different image: anchors and replies retain an immutable image ID. Sidebar annotation links select the associated slide.
+
+Team marks use a pink square and pencil; client marks use a violet circle and conversation icon. Colors use the existing studio/review tokens. Activity badges distinguish comments/annotations/replies (`C001`…), change requests (`R001`…), approvals (`A001`…), uploads (`U001`…) and reorder events (`O001`…). These references are stable within a version and event category; version and delivery provide their scope. They are display references, not authorization credentials.
+
+Schema 2 adds ordered version-image rows and event image IDs. Existing single-image versions become one-image carousels, retaining their IDs, original files, events and pin positions. Existing replies inherit their root's image ID. Versions remain independent; no automatic transfer of annotations between versions. Make a consistent full data-directory backup before updating. A newer unsupported schema is refused rather than downgraded.
 
 ## Links and identity
 
@@ -50,7 +58,7 @@ Revocation prevents new reads/writes/files through that link, while keeping prev
 
 ## Runtime and storage
 
-Reference runtime: Node 24, its SQLite API, one HTTP process, local SQLite database and private upload directory. React/Vite frontend uses the same-origin API; the backend can serve the built application. Password hashes use scrypt; sessions use opaque hashed tokens and HttpOnly SameSite cookies. Origin checks cover mutations. Files are decoded and validated as PNG/JPEG/WebP, maximum 5,000,000 bytes, with image dimensions bounded. Storage quota is checked in a transaction before storing metadata; users cannot choose a disk path. Original uploaded bytes are retained rather than silently recompressed.
+Reference runtime: Node 24, its SQLite API, one HTTP process, local SQLite database and private upload directory. React/Vite frontend uses the same-origin API; the backend can serve the built application. Password hashes use scrypt; sessions use opaque hashed tokens and HttpOnly SameSite cookies. Origin checks cover mutations. Files are decoded as static PNG/JPEG/WebP, maximum 5,000,000 bytes and 24 megapixels each, 20 images and 25,000,000 original bytes per batch. Batch validation, total-original quota and metadata writes are atomic; failure removes only files written by that batch. Users cannot choose disk paths. Original uploaded bytes are retained rather than silently recompressed. Gallery/card thumbnails are authenticated derived WebP responses, not substituted originals; revocation applies to them too.
 
 This is a working application reference environment, not a supported installer for multiple OSes. HTTPS/reverse-proxy setup, backups, recovery, release packaging and load testing remain distribution work. Existing design catalogue remains accessible separately from the product. English is the default, with pt-BR and dark/light controls preserved.
 

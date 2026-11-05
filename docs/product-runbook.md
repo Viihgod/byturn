@@ -51,11 +51,13 @@ Set `BYTURN_ADMIN_EMAIL`, `BYTURN_ADMIN_PASSWORD` (12–200 characters), optiona
 | BYTURN_DATA_DIR | .data | Persistent SQLite database and private originals |
 | BYTURN_STORAGE_BYTES | 250000000 | Total original-image allowance across all projects and versions |
 
-The allowance is cumulative disk usage, not a monthly quota. PNG/JPEG/WebP originals are limited to 5,000,000 bytes each, 24 megapixels and a single frame. Invalid images are rejected server-side; existing versions count toward storage. No file conversion or S3 service is required. There is no deletion/retention UI in this version. Administrators can change the allowance after checking actual free disk space; the application does not reserve disk capacity.
+The allowance is cumulative disk usage, not a monthly quota. PNG/JPEG/WebP originals are limited to 5,000,000 bytes each, 24 megapixels and a single frame. Each version accepts 1–20 images, up to 25,000,000 original bytes in total. Invalid images reject the entire batch; existing versions and every image count toward storage. No S3 service is required. Gallery/card thumbnails are derived privately; originals are retained byte-for-byte. There is no deletion/retention UI in this version. Administrators can change the allowance after checking actual free disk space; the application does not reserve disk capacity. A future reverse proxy must allow the upload endpoint's bounded JSON body (35 MB, including base64 overhead).
 
 ## What is working
 
-Internal delivery management now offers Edit delivery, Replace image, Share review and a client conversation panel. Replacement creates and selects a new immutable version. Editing changes the delivery name, not the image's pixels. Internal accounts no longer get client approval controls; those belong to a client reviewer or guest link.
+Internal delivery management offers Edit delivery, Replace images, Share review and a client conversation panel. Replacement creates and selects a new version containing the newly selected image set. Editing changes the delivery name, not the image's pixels. Internal accounts do not get client approval controls; those belong to a client reviewer or guest link.
+
+Choose multiple files using Upload images/Choose images, or drop files into the project's visible drop area. One submission creates one delivery version with an ordered carousel. Reorder the pending queue before upload, or use Organize images on the latest unapproved version. Drag and drop is complemented by earlier/later buttons for touch and keyboard. Removing a queued image does not delete an existing server image. To revise a saved image set, upload a new version.
 
 Choose **Mark artwork**, then click/tap the image to write a location-specific comment. Keyboard users can activate the placement surface to start a center marker. Hover a marker to preview, or activate it to reply. Sidebar annotation links locate the same thread on the image. Both sides can create markers and reply. Locations are percentages of the actual image, so viewport resizing preserves the marked point. Old markers remain on the old version.
 
@@ -63,11 +65,13 @@ The local Weekend poster fixture now has V3, a team marker on its date and a gue
 
 Administrators create projects/accounts, disable/enable accounts, reset passwords and grant/remove viewer, editor or reviewer access per project. A member initially sees nothing until granted access. Client accounts can be viewers or reviewers; creating one is optional. Tags/search/status filters organize visible work and never grant access.
 
-Editors upload original images and immutable numbered versions, comment, create links and revoke them. Reviewers comment and decide on the current version. A change request requires an explanation. Approval is bound to that exact version; a new upload starts awaiting review. The API rejects decisions based on a replaced version or stale decision revision. Server changes appear in other open sessions on a 10-second refresh interval.
+Editors upload original images and numbered versions, comment, create links and revoke them. Reviewers comment and decide on the current version. A change request requires an explanation. Approval covers every image in that version and closes its review: repeated approval, comments, replies, change requests and reordering are rejected. To make changes, upload a new version, which starts awaiting review. The API rejects writes to replaced versions and decisions based on stale revision/order. Server changes appear in other open sessions on a 10-second refresh interval.
+
+Team pins are pink squares with a pencil, client pins violet circles with a conversation icon. Each pin is tied to its image ID, not the slide index. Activity badges identify comments (`C…`), requests (`R…`) and approvals (`A…`), plus upload/order events. References are scoped to a version. The local fictional Carousel QA delivery demonstrates three ordered images, both parties' pins, a general comment, a request and one final locked approval. Drop area QA demonstrates a separate two-image batch.
 
 Guest links grant review access to one entire project, including history and future uploads. The secret appears once in the sharing dialog, is carried in the URL fragment and sent as a bearer credential to the API. Only its hash is stored in SQLite. Someone who receives a forwarded link also receives its access. Revocation blocks subsequent API/file requests and retains submitted feedback. It cannot erase already viewed, cached or downloaded content. Guest names are explicitly marked as declared; a signed-in account's identity is recorded as an account.
 
-The download button serves the current approved original byte-for-byte. This is workflow guidance, not copy protection: reviewers can already view the original image and may save it from the preview before approval.
+The download button serves the selected image in the current approved carousel byte-for-byte, preserving its filename. Browsing the other slides remains available after approval. This is workflow guidance, not copy protection: reviewers can already view the original image and may save it from the preview before approval.
 
 ## Verification and limits
 

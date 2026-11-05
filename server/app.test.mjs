@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname, resolve } from 'node:path'
 import sharp from 'sharp'
@@ -103,6 +103,7 @@ async function fixture(t, options = {}) {
     (await request(`/api/projects/${project}/links`, { cookie, body: { label: 'Client review' } }))
       .data
   return {
+    dataDir,
     app,
     request,
     admin,
@@ -124,6 +125,327 @@ async function fixture(t, options = {}) {
     },
   }
 }
+
+test('multi-image uploads are atomic, bounded and account for the entire batch quota', async (t) => {
+  const f = await fixture(t)
+  const source = { filename: 'one.png', data: f.image.toString('base64') }
+  const path = `/api/projects/${f.project}/uploads`
+  for (const images of [
+    [],
+    Array.from({ length: 21 }, () => source),
+    [source, { filename: 'bad.png', data: Buffer.from('not an image').toString('base64') }],
+  ])
+    assert.equal(
+      (await f.request(path, { cookie: f.cookie, body: { name: 'Batch', images } })).status,
+      400,
+    )
+  assert.equal(f.app.db.prepare('SELECT count(*) AS n FROM versions').get().n, 0)
+  assert.equal(readdirSync(join(f.dataDir, 'files')).length, 0)
+  const result = await f.request(path, {
+    cookie: f.cookie,
+    body: {
+      name: 'Carousel',
+      images: [source, { ...source, filename: 'two.png' }, { ...source, filename: 'three.png' }],
+    },
+  })
+  assert.equal(result.status, 201)
+  const dto = (await f.request('/api/projects/' + f.project, { cookie: f.cookie })).data
+  assert.equal(dto.assets.length, 1)
+  const version = dto.assets[0].versions[0]
+  assert.equal(version.images.length, 3)
+  assert.equal(version.bytes, f.image.length * 3)
+  assert.deepEqual(
+    version.images.map((i) => i.filename),
+    ['one.png', 'two.png', 'three.png'],
+  )
+  assert.equal(new Set(version.images.map((i) => i.id)).size, 3)
+  const limited = await fixture(t, { quota: f.image.length * 2 - 1 })
+  assert.equal(
+    (
+      await limited.request(`/api/projects/${limited.project}/uploads`, {
+        cookie: limited.cookie,
+        body: { images: [source, source] },
+      })
+    ).status,
+    413,
+  )
+  assert.equal(readdirSync(join(limited.dataDir, 'files')).length, 0)
+})
+
+test('carousel order persists; annotations follow image IDs and stale approval cannot override a reorder', async (t) => {
+  const f = await fixture(t)
+  const second = await sharp({
+    create: { width: 90, height: 64, channels: 3, background: '#369cff' },
+  })
+    .png()
+    .toBuffer()
+  const up = (
+    await f.request(`/api/projects/${f.project}/uploads`, {
+      cookie: f.cookie,
+      body: {
+        name: 'Carousel',
+        images: [
+          { filename: 'first.png', data: f.image.toString('base64') },
+          { filename: 'second.png', data: second.toString('base64') },
+        ],
+      },
+    })
+  ).data
+  const path = `/api/assets/${up.assetId}/versions/${up.versionId}`
+  const { token } = await f.link()
+  let dto = (await f.request('/api/review', { token })).data
+  const images = dto.assets[0].versions[0].images
+  const pin = await f.request(path + '/comments', {
+    token,
+    body: {
+      name: 'Client',
+      body: 'Mark second image',
+      imageId: images[1].id,
+      anchor: { x: 0.7, y: 0.2 },
+    },
+  })
+  assert.equal(pin.status, 200)
+  assert.equal(
+    (
+      await f.request(path + '/comments', {
+        token,
+        body: { name: 'Client', body: 'Missing image', anchor: { x: 0.2, y: 0.2 } },
+      })
+    ).status,
+    400,
+  )
+  assert.equal(
+    (
+      await f.request(path + '/images/order', {
+        cookie: f.cookie,
+        method: 'PUT',
+        body: { revision: 0, imageIds: [images[1].id, images[1].id] },
+      })
+    ).status,
+    400,
+  )
+  assert.equal(
+    (
+      await f.request(path + '/images/order', {
+        token,
+        method: 'PUT',
+        body: { revision: 0, imageIds: images.map((i) => i.id) },
+      })
+    ).status,
+    404,
+  )
+  assert.equal(
+    (
+      await f.request(path + '/images/order', {
+        cookie: f.cookie,
+        method: 'PUT',
+        body: { revision: 0, imageIds: [images[1].id, images[0].id] },
+      })
+    ).status,
+    200,
+  )
+  assert.equal(
+    (
+      await f.request(path + '/decision', {
+        token,
+        body: { name: 'Client', state: 'approved', revision: 0 },
+      })
+    ).status,
+    409,
+  )
+  assert.deepEqual((await f.request(path + '/file', { token })).data, second)
+  const preview = await f.request(path + '/images/' + images[1].id + '/thumbnail', { token })
+  assert.equal(preview.status, 200)
+  assert.equal((await sharp(preview.data).metadata()).format, 'webp')
+  await f.restart()
+  dto = (await f.request('/api/review', { token })).data
+  assert.deepEqual(
+    dto.assets[0].versions[0].images.map((i) => i.id),
+    [images[1].id, images[0].id],
+  )
+  assert.equal(dto.events.find((e) => e.id === pin.data.id).imageId, images[1].id)
+  assert.equal(dto.events.find((e) => e.id === pin.data.id).reference, 'C001')
+  assert.equal(dto.events.filter((e) => e.type === 'images.reordered').length, 1)
+})
+
+test('approval is terminal for all carousel slides and cannot create duplicate approvals', async (t) => {
+  const f = await fixture(t)
+  const img = { filename: 'slide.png', data: f.image.toString('base64') }
+  const up = (
+    await f.request(`/api/projects/${f.project}/uploads`, {
+      cookie: f.cookie,
+      body: { name: 'Approved carousel', images: [img, img] },
+    })
+  ).data
+  const { token } = await f.link()
+  const path = `/api/assets/${up.assetId}/versions/${up.versionId}`
+  const comment = await f.request(path + '/comments', {
+    token,
+    body: { name: 'Client', body: 'A regular comment' },
+  })
+  assert.equal(comment.status, 200)
+  assert.equal(
+    (
+      await f.request(path + '/decision', {
+        token,
+        body: { name: 'Client', state: 'changes', body: 'Adjust title', revision: 0 },
+      })
+    ).status,
+    200,
+  )
+  assert.equal(
+    (
+      await f.request(path + '/decision', {
+        token,
+        body: { name: 'Client', state: 'approved', revision: 1 },
+      })
+    ).status,
+    200,
+  )
+  for (const state of ['approved', 'changes']) {
+    const blocked = await f.request(path + '/decision', {
+      token,
+      body: { name: 'Client', state, body: 'Repeated', revision: 2 },
+    })
+    assert.equal(blocked.status, 409)
+    assert.equal(blocked.data.error, 'VERSION_APPROVED')
+  }
+  for (const auth of [{ token }, { cookie: f.cookie }])
+    assert.equal(
+      (
+        await f.request(path + '/comments', {
+          ...auth,
+          body: { name: 'Client', body: 'Locked reply', replyTo: comment.data.id },
+        })
+      ).status,
+      409,
+    )
+  const dto = (await f.request('/api/review', { token })).data
+  const version = dto.assets[0].versions[0]
+  assert.equal(
+    (
+      await f.request(path + '/images/order', {
+        cookie: f.cookie,
+        method: 'PUT',
+        body: { revision: 2, imageIds: version.images.map((i) => i.id).reverse() },
+      })
+    ).status,
+    409,
+  )
+  assert.deepEqual(
+    dto.events
+      .filter((e) => ['comment', 'changes', 'approved'].includes(e.type))
+      .map((e) => e.reference),
+    ['C001', 'R001', 'A001'],
+  )
+  assert.equal(dto.events.filter((e) => e.type === 'approved').length, 1)
+  for (const image of version.images)
+    assert.deepEqual(
+      (await f.request(path + '/images/' + image.id + '/download', { token })).data,
+      f.image,
+    )
+  const next = await f.upload(up.assetId)
+  assert.equal(next.status, 201)
+  const updated = (await f.request('/api/review', { token })).data
+  assert.equal(updated.assets[0].versions[0].state, 'review')
+  assert.equal(updated.assets[0].versions[0].images.length, 1)
+})
+
+test('image IDs cannot cross version/project boundaries and revoked links lose originals and thumbnails', async (t) => {
+  const f = await fixture(t)
+  const first = (await f.upload()).data
+  const second = (await f.upload()).data
+  const { token, id } = await f.link()
+  const dto = (await f.request('/api/review', { token })).data
+  const image = dto.assets.find((a) => a.id === second.assetId).versions[0].images[0]
+  const path = `/api/assets/${first.assetId}/versions/${first.versionId}`
+  assert.equal((await f.request(path + '/images/' + image.id + '/file', { token })).status, 404)
+  assert.equal(
+    (
+      await f.request(path + '/comments', {
+        token,
+        body: {
+          name: 'Client',
+          body: 'Wrong slide',
+          imageId: image.id,
+          anchor: { x: 0.5, y: 0.5 },
+        },
+      })
+    ).status,
+    400,
+  )
+  const other = await f.login(f.other.email)
+  const ownImage = dto.assets.find((a) => a.id === first.assetId).versions[0].images[0]
+  assert.equal(
+    (await f.request(path + '/images/' + ownImage.id + '/thumbnail', { cookie: other })).status,
+    404,
+  )
+  await f.request('/api/links/' + id, { cookie: f.cookie, method: 'DELETE' })
+  for (const action of ['file', 'thumbnail'])
+    assert.equal(
+      (await f.request(path + '/images/' + ownImage.id + '/' + action, { token })).status,
+      404,
+    )
+})
+
+test('single-image migration keeps existing pin locations, replies and original bytes', async (t) => {
+  const f = await fixture(t)
+  const up = (await f.upload()).data
+  f.app.db.exec(
+    'DROP TABLE events; CREATE TABLE events(id TEXT PRIMARY KEY,project_id TEXT,asset_id TEXT,version_id TEXT,type TEXT,body TEXT,actor TEXT,identity TEXT,created TEXT,anchor_x REAL,anchor_y REAL,parent_id TEXT,party TEXT); DELETE FROM version_images; PRAGMA user_version=1;',
+  )
+  const insert = f.app.db.prepare('INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
+  insert.run(
+    'pin',
+    f.project,
+    up.assetId,
+    up.versionId,
+    'comment',
+    'Old pin',
+    'Client',
+    'declared',
+    new Date().toISOString(),
+    0.12,
+    0.88,
+    null,
+    'client',
+  )
+  insert.run(
+    'reply',
+    f.project,
+    up.assetId,
+    up.versionId,
+    'comment',
+    'Old reply',
+    'Designer',
+    'account',
+    new Date().toISOString(),
+    null,
+    null,
+    'pin',
+    'team',
+  )
+  await f.restart()
+  const dto = (await f.request('/api/projects/' + f.project, { cookie: f.cookie })).data
+  const version = dto.assets[0].versions[0]
+  assert.equal(version.images.length, 1)
+  const pin = dto.events.find((e) => e.id === 'pin'),
+    reply = dto.events.find((e) => e.id === 'reply')
+  assert.equal(pin.anchorX, 0.12)
+  assert.equal(pin.anchorY, 0.88)
+  assert.equal(pin.imageId, version.images[0].id)
+  assert.equal(reply.imageId, pin.imageId)
+  assert.equal(reply.parentId, pin.id)
+  assert.deepEqual(
+    (
+      await f.request(
+        `/api/assets/${up.assetId}/versions/${up.versionId}/images/${version.images[0].id}/file`,
+        { cookie: f.cookie },
+      )
+    ).data,
+    f.image,
+  )
+})
 
 test('version-specific pins support guest/team replies and reject cross-version or invalid anchors', async (t) => {
   const f = await fixture(t)

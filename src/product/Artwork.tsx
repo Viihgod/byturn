@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Popover } from 'radix-ui'
-import { ChatCircleDots, MapPin, X } from '@phosphor-icons/react'
+import { ChatCircleDots, MapPin, PencilSimple, X } from '@phosphor-icons/react'
 import { BtButton, BtIconButton } from '../design-system/core'
 import { useTranslation } from '../i18n/locale'
 import type { TranslationKey } from '../i18n/locale'
@@ -8,6 +8,7 @@ import { api, filePath } from './api'
 import type { ReviewEvent } from './api'
 import { fittedImage, pointInImage } from './coordinates'
 import type { Point } from './coordinates'
+import { EventLabel } from './EventLabel'
 
 export type CommentInput = { body: string; anchor?: Point; replyTo?: string }
 export type CommentActions = {
@@ -118,6 +119,7 @@ export function CommentThread({
   function message(event: ReviewEvent) {
     return (
       <div className="p-thread-message" key={event.id} data-party={event.party}>
+        <EventLabel event={event} />
         <div className="p-timeline-head">
           <span className="p-avatar">{event.actor[0]}</span>
           <div>
@@ -170,7 +172,7 @@ export function CommentThread({
           {p('reply')}
         </BtButton>
       )}
-      {replying && (
+      {actions.writable && replying && (
         <MessageForm
           {...actions}
           replyTo={root.id}
@@ -185,6 +187,8 @@ export function CommentThread({
 export function Artwork({
   asset,
   version,
+  imageId,
+  party,
   token,
   events,
   actions,
@@ -195,6 +199,8 @@ export function Artwork({
 }: {
   asset: string
   version: string
+  imageId: string
+  party: 'team' | 'client'
   token: string
   events: ReviewEvent[]
   actions: CommentActions
@@ -226,7 +232,7 @@ export function Artwork({
   useEffect(() => {
     let disposed = false
     let object = ''
-    api<Blob>(filePath(asset, version), { blob: true, token })
+    api<Blob>(filePath(asset, version, false, imageId), { blob: true, token })
       .then((blob) => {
         if (!disposed) {
           object = URL.createObjectURL(blob)
@@ -241,11 +247,12 @@ export function Artwork({
       if (object) URL.revokeObjectURL(object)
       clearTimeout(timer.current)
     }
-  }, [asset, version, token])
+  }, [asset, version, token, imageId])
   const fitted = fittedImage(size.width, size.height, natural.width, natural.height)
-  const roots = events.filter(
-    (e) => e.type === 'comment' && !e.parentId && e.anchorX !== null && e.anchorY !== null,
-  )
+  const roots = events
+    .filter((e) => e.type === 'comment' && !e.parentId && e.anchorX !== null && e.anchorY !== null)
+    .map((event, index) => ({ ...event, markerNumber: index + 1 }))
+    .filter((event) => event.imageId === imageId)
   function leave(id: string) {
     clearTimeout(timer.current)
     timer.current = setTimeout(() => {
@@ -254,7 +261,7 @@ export function Artwork({
   }
   function enter(id: string) {
     clearTimeout(timer.current)
-    if (!locked.current) setActivePin(id)
+    if (!draft && !locked.current) setActivePin(id)
   }
   return (
     <div className="p-artwork-stage" ref={stage}>
@@ -292,7 +299,7 @@ export function Artwork({
               }}
             />
           )}
-          {roots.map((root, index) => (
+          {roots.map((root) => (
             <Popover.Root
               key={root.id}
               open={activePin === root.id}
@@ -306,8 +313,9 @@ export function Artwork({
               <Popover.Trigger asChild>
                 <button
                   className="p-art-pin"
+                  data-party={root.party}
                   style={{ left: `${root.anchorX! * 100}%`, top: `${root.anchorY! * 100}%` }}
-                  aria-label={`${p('annotation')} ${index + 1}: ${root.actor}`}
+                  aria-label={`${p(root.party === 'team' ? 'teamMember' : root.party === 'client' ? 'client' : 'account')} · ${p('annotation')} ${root.markerNumber}: ${root.actor}`}
                   onPointerEnter={(e) => {
                     if (e.pointerType !== 'touch') enter(root.id)
                   }}
@@ -320,8 +328,8 @@ export function Artwork({
                   }}
                 >
                   <span>
-                    <ChatCircleDots />
-                    <small>{index + 1}</small>
+                    {root.party === 'team' ? <PencilSimple /> : <ChatCircleDots />}
+                    <small>{root.markerNumber}</small>
                   </span>
                 </button>
               </Popover.Trigger>
@@ -336,11 +344,11 @@ export function Artwork({
                   onOpenAutoFocus={(e) => e.preventDefault()}
                   onPointerEnter={() => clearTimeout(timer.current)}
                   onPointerLeave={() => leave(root.id)}
-                  aria-label={`${p('annotation')} ${index + 1}`}
+                  aria-label={`${p('annotation')} ${root.markerNumber}`}
                 >
                   <div className="p-pin-popover-heading">
                     <strong>
-                      {p('annotation')} {index + 1}
+                      {p('annotation')} {root.markerNumber}
                     </strong>
                     <Popover.Close asChild>
                       <BtIconButton label={p('close')} variant="ghost">
@@ -361,7 +369,7 @@ export function Artwork({
               </Popover.Portal>
             </Popover.Root>
           ))}
-          {draft && (
+          {actions.writable && draft && (
             <Popover.Root
               open
               onOpenChange={(open) => {
@@ -371,6 +379,7 @@ export function Artwork({
               <Popover.Trigger asChild>
                 <button
                   className="p-art-pin p-draft-pin"
+                  data-party={party}
                   style={{ left: `${draft.x * 100}%`, top: `${draft.y * 100}%` }}
                   aria-label={p('newAnnotation')}
                 >

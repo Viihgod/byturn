@@ -5,6 +5,13 @@ export type User = {
   role: 'admin' | 'member' | 'client'
   active: boolean
 }
+export type VersionImage = {
+  id: string
+  position: number
+  filename: string
+  mime: string
+  bytes: number
+}
 export type Version = {
   id: string
   number: number
@@ -14,6 +21,7 @@ export type Version = {
   state: 'review' | 'changes' | 'approved'
   revision: number
   created: string
+  images: VersionImage[]
 }
 export type Asset = { id: string; name: string; currentVersion: string; versions: Version[] }
 export type Project = {
@@ -36,6 +44,8 @@ export type Project = {
     anchorY: number | null
     parentId: string | null
     party: 'team' | 'client' | 'unknown'
+    imageId: string | null
+    reference: string
   }[]
   links: { id: string; label: string; revoked: string | null; created: string }[]
   grants: { userId: string; name: string; role: string; permission: string }[]
@@ -69,8 +79,8 @@ export async function api<T>(
   }
   return (options.blob ? await response.blob() : await response.json()) as T
 }
-export const filePath = (asset: string, version: string, download = false) =>
-  `/assets/${asset}/versions/${version}/${download ? 'download' : 'file'}`
+export const filePath = (asset: string, version: string, download = false, imageId?: string) =>
+  `/assets/${asset}/versions/${version}${imageId ? '/images/' + imageId : ''}/${download ? 'download' : 'file'}`
 export async function imagePayload(file: File) {
   if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type))
     throw new ApiError('INVALID_IMAGE', 400)

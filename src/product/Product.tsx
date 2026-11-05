@@ -4,9 +4,11 @@ import {
   ArrowLeft,
   ArrowUpRight,
   Check,
+  ChatCircleDots,
   DownloadSimple,
   FolderSimple,
   LinkSimple,
+  LockKey,
   Moon,
   MapPin,
   PencilSimple,
@@ -21,7 +23,11 @@ import { BtBrandLockup, BtButton, BtIconButton } from '../design-system/core'
 import { BtDialog } from '../design-system/overlays'
 import { LocaleProvider } from '../i18n/context'
 import { useTranslation } from '../i18n/locale'
-import { api, ApiError, filePath, imagePayload } from './api'
+import { api, ApiError, filePath } from './api'
+import { OriginalImage as Image } from './OriginalImage'
+import { UploadDialog as Upload, FileDropArea } from './UploadDialog'
+import { Gallery } from './Gallery'
+import { EventLabel } from './EventLabel'
 import { Settings } from './Settings'
 import { Artwork, CommentThread } from './Artwork'
 import type { CommentInput } from './Artwork'
@@ -60,31 +66,6 @@ function State({ state }: { state: Version['state'] }) {
       <i />
       {p(state)}
     </span>
-  )
-}
-function Image({ asset, version, token = '' }: { asset: string; version: string; token?: string }) {
-  const [image, setImage] = useState({ version: '', url: '' })
-  const { p } = useCopy()
-  useEffect(() => {
-    let disposed = false
-    let object = ''
-    api<Blob>(filePath(asset, version), { token, blob: true })
-      .then((blob) => {
-        if (!disposed) {
-          object = URL.createObjectURL(blob)
-          setImage({ version, url: object })
-        }
-      })
-      .catch(() => {})
-    return () => {
-      disposed = true
-      if (object) URL.revokeObjectURL(object)
-    }
-  }, [asset, version, token])
-  return image.version === version && image.url ? (
-    <img src={image.url} alt="" />
-  ) : (
-    <span className="p-image-loading">{p('loadingImage')}</span>
   )
 }
 function Dialog({
@@ -211,6 +192,8 @@ function Workspace() {
       setNotice(message)
       return true
     } catch (e) {
+      if (e instanceof ApiError && ['VERSION_APPROVED', 'STALE_VERSION'].includes(e.code))
+        await refresh().catch(() => {})
       setError(e instanceof ApiError ? e.code : 'SERVER_ERROR')
       return false
     } finally {
@@ -524,69 +507,6 @@ function Projects({
     </main>
   )
 }
-function Upload({
-  project,
-  asset,
-  pending,
-  act,
-  onUploaded,
-  replace = false,
-}: {
-  project: Project
-  asset?: Asset
-  onUploaded?: (version: string) => void
-  replace?: boolean
-} & Actions) {
-  const { p } = useCopy()
-  const [open, setOpen] = useState(false)
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={setOpen}
-      title={p(replace ? 'replaceImage' : asset ? 'newVersion' : 'upload')}
-      description={p('uploadHint')}
-      trigger={
-        <>
-          <UploadSimple />
-          {p(replace ? 'replaceImage' : asset ? 'newVersion' : 'upload')}
-        </>
-      }
-    >
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          const form = e.currentTarget
-          const data = new FormData(form)
-          const file = data.get('file') as File
-          void act(async () => {
-            const uploaded = await api<{ versionId: string }>(`/projects/${project.id}/uploads`, {
-              body: {
-                ...(await imagePayload(file)),
-                name: asset?.name ?? data.get('name'),
-                ...(asset ? { assetId: asset.id } : {}),
-              },
-            })
-            setOpen(false)
-            onUploaded?.(uploaded.versionId)
-          }, 'uploaded')
-        }}
-      >
-        {!asset && (
-          <Field label={p('assetName')}>
-            <input name="name" required maxLength={200} />
-          </Field>
-        )}
-        <Field label={p('file')}>
-          <input name="file" type="file" accept="image/png,image/jpeg,image/webp" required />
-        </Field>
-        <p className="p-subtle">{p(asset ? 'versionHint' : 'originalHint')}</p>
-        <BtButton type="submit" pending={pending}>
-          {p('upload')}
-        </BtButton>
-      </form>
-    </Dialog>
-  )
-}
 function Sharing({ project, act, pending }: { project: Project } & Actions) {
   const { p } = useCopy()
   const [url, setUrl] = useState('')
@@ -677,6 +597,7 @@ function ProjectView({
   const { p } = useCopy()
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
+  const [upload, setUpload] = useState({ open: false, files: [] as File[], seed: 0 })
   const editable = !token && ['admin', 'editor'].includes(project.permission)
   const assets = project.assets.filter(
     (a) =>
@@ -707,10 +628,27 @@ function ProjectView({
         {editable && (
           <div className="p-actions">
             <Sharing project={project} act={act} pending={pending} />
-            <Upload project={project} act={act} pending={pending} />
+            <Upload
+              key={upload.seed}
+              project={project}
+              act={act}
+              pending={pending}
+              open={upload.open}
+              onOpenChange={(open) => setUpload((current) => ({ ...current, open }))}
+              initialFiles={upload.files}
+            />
           </div>
         )}
       </div>
+      {editable && (
+        <FileDropArea
+          disabled={pending}
+          onChoose={() => setUpload((current) => ({ ...current, open: true }))}
+          onFiles={(files) =>
+            setUpload((current) => ({ open: true, files, seed: current.seed + 1 }))
+          }
+        />
+      )}
       <div className="p-toolbar">
         <input
           type="search"
@@ -738,7 +676,13 @@ function ProjectView({
         {assets.map((asset) => (
           <a className="p-asset-card" key={asset.id} href={href(asset)}>
             <div className="p-thumbnail">
-              <Image asset={asset.id} version={asset.currentVersion} token={token} />
+              <Image
+                asset={asset.id}
+                version={asset.currentVersion}
+                imageId={asset.versions[0].images[0]?.id}
+                token={token}
+                thumbnail
+              />
               <span className="p-version">V{asset.versions[0].number}</span>
             </div>
             <div className="p-asset-info">
@@ -746,8 +690,9 @@ function ProjectView({
               <State state={asset.versions[0].state} />
               <footer>
                 <span>
-                  {(asset.versions[0].bytes / 1000).toFixed(0)} KB ·{' '}
-                  {asset.versions[0].mime.split('/')[1].toUpperCase()}
+                  {asset.versions[0].images.length}{' '}
+                  {p(asset.versions[0].images.length === 1 ? 'image' : 'images')} ·{' '}
+                  {(asset.versions[0].bytes / 1000).toFixed(0)} KB
                 </span>
                 <ArrowUpRight />
               </footer>
@@ -780,6 +725,12 @@ function Review({
   const { p, locale } = useCopy()
   const [selected, setSelected] = useState(asset.currentVersion)
   const version = asset.versions.find((v) => v.id === selected) ?? asset.versions[0]
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const imageIndex = Math.max(
+    0,
+    version.images.findIndex((image) => image.id === selectedImage),
+  )
+  const image = version.images[imageIndex]
   const [name, setName] = useState('')
   const [body, setBody] = useState('')
   const [decision, setDecision] = useState(false)
@@ -789,14 +740,15 @@ function Review({
   const internal = !token && user?.role !== 'client'
   const edit = internal && ['admin', 'editor'].includes(project.permission)
   const review = !internal && project.permission === 'reviewer'
-  const comment = project.permission !== 'viewer'
   const latest = version.id === asset.currentVersion
+  const locked = version.state === 'approved'
+  const comment = project.permission !== 'viewer' && latest && !locked
   const back = token ? `#review/${token}` : `#project/${project.id}`
   const events = project.events
     .filter(
       (e) =>
         e.versionId === version.id &&
-        ['comment', 'approved', 'changes', 'version.uploaded'].includes(e.type),
+        ['comment', 'approved', 'changes', 'version.uploaded', 'images.reordered'].includes(e.type),
     )
     .toReversed()
   async function submit(state?: 'changes' | 'approved') {
@@ -822,7 +774,7 @@ function Review({
       () =>
         api(filePath(asset.id, version.id).replace('/file', '/comments'), {
           token,
-          body: { ...input, name },
+          body: { ...input, name, ...(input.anchor ? { imageId: image.id } : {}) },
         }),
       input.replyTo ? 'replySaved' : 'commentSaved',
     )
@@ -882,6 +834,7 @@ function Review({
                 replace
                 onUploaded={(id) => {
                   setSelected(id)
+                  setSelectedImage(null)
                   setPinMode(false)
                   setActivePin(null)
                   setBody('')
@@ -897,14 +850,14 @@ function Review({
               pending={pending}
               onClick={() => {
                 void act(async () => {
-                  const blob = await api<Blob>(filePath(asset.id, version.id, true), {
+                  const blob = await api<Blob>(filePath(asset.id, version.id, true, image.id), {
                     token,
                     blob: true,
                   })
                   const url = URL.createObjectURL(blob)
                   const a = document.createElement('a')
                   a.href = url
-                  a.download = version.filename
+                  a.download = image.filename
                   a.click()
                   setTimeout(() => URL.revokeObjectURL(url), 1000)
                 }, 'downloaded')
@@ -930,6 +883,7 @@ function Review({
             value={version.id}
             onChange={(e) => {
               setSelected(e.target.value)
+              setSelectedImage(null)
               setBody('')
               setDecision(false)
               setPinMode(false)
@@ -946,9 +900,20 @@ function Review({
         </Field>
       </div>
       {!latest && <p className="p-history-note">{p('historical')}</p>}
-      <p className="p-review-intro">
-        {p(internal ? (edit ? 'teamReviewIntro' : 'teamReadIntro') : 'clientReviewIntro')}
-      </p>
+      {locked && (
+        <div className="p-approved-lock" role="status">
+          <LockKey />
+          <div>
+            <strong>{p('approvedLocked')}</strong>
+            <p>{p(internal ? 'approvedTeamHint' : 'approvedClientHint')}</p>
+          </div>
+        </div>
+      )}
+      {!locked && (
+        <p className="p-review-intro">
+          {p(internal ? (edit ? 'teamReviewIntro' : 'teamReadIntro') : 'clientReviewIntro')}
+        </p>
+      )}
       <div className="p-annotation-toolbar">
         {comment && (
           <BtButton
@@ -961,14 +926,40 @@ function Review({
           </BtButton>
         )}
         <span>{p(pinMode ? 'pinInstructions' : 'pinHint')}</span>
+        <span className="p-pin-legend">
+          <span data-party="team">
+            <PencilSimple />
+            {p('teamMember')}
+          </span>
+          <span data-party="client">
+            <ChatCircleDots />
+            {p('client')}
+          </span>
+        </span>
       </div>
       <div className="p-review-grid">
         <section className="p-preview" aria-label={p('preview')}>
+          <Gallery
+            asset={asset.id}
+            version={version}
+            token={token}
+            index={imageIndex}
+            onSelect={(index) => {
+              setSelectedImage(version.images[index].id)
+              setActivePin(null)
+              setPinMode(false)
+            }}
+            editable={edit && latest && !locked}
+            pending={pending}
+            act={act}
+          />
           <div className="p-artboard">
             <Artwork
-              key={version.id}
+              key={version.id + '/' + image.id}
               asset={asset.id}
               version={version.id}
+              imageId={image.id}
+              party={internal ? 'team' : 'client'}
               token={token}
               events={versionEvents}
               actions={commentActions}
@@ -979,9 +970,10 @@ function Review({
             />
           </div>
           <footer>
-            {version.filename}
+            {image.filename}
             <span>
-              {(version.bytes / 1000).toFixed(0)} KB · V{version.number}
+              {(image.bytes / 1000).toFixed(0)} KB · V{version.number} · {imageIndex + 1}/
+              {version.images.length}
             </span>
           </footer>
         </section>
@@ -1043,12 +1035,14 @@ function Review({
               </div>
             </form>
           ) : (
-            <p className="p-subtle">{p('viewOnly')}</p>
+            <p className="p-subtle">
+              {p(locked ? 'approvedClientHint' : !latest ? 'historical' : 'viewOnly')}
+            </p>
           )}
-          {review && latest && (
+          {review && latest && !locked && (
             <div className="p-review-decision">
               <p>
-                {p('decisionHint')} V{version.number}.
+                {p('decisionHint')} V{version.number}. {p('approvalAllImages')}
               </p>
               <div className="p-actions">
                 <BtButton
@@ -1088,15 +1082,17 @@ function Review({
                           : undefined
                       }
                       onLocate={() => {
+                        if (event.imageId) setSelectedImage(event.imageId)
                         setActivePin(event.id)
                         document
-                          .querySelector('.p-image-plane')
+                          .querySelector('.p-preview')
                           ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
                       }}
                     />
                   </article>
                 ) : (
-                  <article key={event.id}>
+                  <article key={event.id} className="p-event-card" data-kind={event.type}>
+                    <EventLabel event={event} />
                     <div className="p-timeline-head">
                       <span className="p-avatar">{event.actor.slice(0, 1)}</span>
                       <div>
@@ -1112,7 +1108,6 @@ function Review({
                         </small>
                       </div>
                     </div>
-                    <span className="p-event-type">{p(event.type)}</span>
                     {event.body && <p>{event.body}</p>}
                   </article>
                 ),

@@ -1,5 +1,23 @@
 # Product review — 2026-11-03
 
+## Multi-image carousels and terminal approval — 2026-11-05
+
+The app accepts multiple selected or dropped images in one ordered version. Both the upload queue and saved unapproved carousel support drag and drop plus earlier/later buttons. Limits are explicit: 20 images, 5 MB per image and 25 MB per batch. Validation/quota/storage failure rejects the batch atomically. Each image keeps its own original bytes, private thumbnail endpoint and immutable ID; pin coordinates and replies remain attached to that ID through reordering. Schema 2 preserves older single-image versions and annotations. A stopped-server backup of the local data directory was created before upgrading.
+
+Approval closes the whole version. Repeated approval and further comments/replies/change requests/reordering are rejected by the server; the UI removes these controls and shows a locked banner. An editor can upload a new version to restart review. Team pins are pink square pencil markers; client pins are violet round conversation markers. Activity badges distinguish comment/annotation/reply (`C…`), changes (`R…`) and approval (`A…`), with stable references scoped to a version/category.
+
+Automated checks: 61 frontend/guide/coordinate/upload tests, 10 tooling/archive tests and 14 server integration tests (85 total), plus lint, TypeScript and production build. Added coverage exercises multi-selection plus drop and queue ordering, atomic batches/quota cleanup, original/thumbnail authorization, cross-image/version/project references, reorder conflicts, terminal approval, persistence and legacy migration. DS coverage gates remain scoped to the configured DS/i18n sources, not the entire product.
+
+Browser verification against the real local server:
+
+1. Admin selected three real PNG files together, reordered them with native drag and drop, and uploaded one Carousel QA delivery. Reordering the saved carousel preserved the explicitly selected image and its team pin. Moving slides did not change pin ownership.
+2. A guest review link showed the three-image carousel. The guest added a general comment, a client pin on another slide and a request (`R001`). Distinct team/client markers and `C001`–`C003` references were visible. Switching slides showed only that image's pins.
+3. At a 390 px viewport, document width was exactly 390 px; the client pin remained at `(0.5, 0.5)` and the popover stayed within x=54…374. Keyboard activation worked. This is viewport emulation, not physical-device testing.
+4. The guest approved once (`A001`); decision controls, comment forms and mark creation disappeared. Both guest and administrator views showed the locked banner, with no reorder action. Editors retained replacement-as-new-version. Downloading the selected approved slide returned the original filename and exactly matching bytes.
+5. The project drop area was exercised with a DOM-dispatched File/DataTransfer drop (browser tooling has no physical OS-file drag). It opened a two-image queue and submitted a real Drop area QA delivery. The separate React integration test also covers drop and native reorder handlers.
+
+Local screenshots and browser scripts are under workspace `.lavish/byturn-carousel-20261105/`, excluded from the product repository. No external messages or public deployment were performed. Figma composed screens were not updated in this iteration. Vite reports an advisory product bundle-size warning; no load-test or production security certification is claimed.
+
 ## Review roles and artwork annotations — 2026-11-04
 
 The running app separates internal delivery management from client review. Administrator/editor accounts get name editing, replacement as a new version, sharing and a client conversation. Approval/change requests belong to a client reviewer or review link and are rejected by the API for internal accounts. New member grants are viewer/editor; client grants are viewer/reviewer.
