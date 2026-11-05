@@ -48,7 +48,7 @@ export function createApplication({
   const root = resolve(dataDir)
   mkdirSync(join(root, 'files'), { recursive: true })
   const db = new DatabaseSync(join(root, 'byturn.sqlite'))
-  if (db.prepare('PRAGMA user_version').get().user_version > 2) {
+  if (db.prepare('PRAGMA user_version').get().user_version > 3) {
     db.close()
     throw new Error('This data directory requires a newer Byturn build')
   }
@@ -90,7 +90,8 @@ export function createApplication({
       SELECT v.id,v.id,0,v.filename,v.mime,v.bytes,v.path FROM versions v WHERE NOT EXISTS(SELECT 1 FROM version_images i WHERE i.version_id=v.id);
       UPDATE events SET image_id=(SELECT id FROM version_images WHERE version_id=events.version_id ORDER BY position LIMIT 1) WHERE anchor_x IS NOT NULL AND image_id IS NULL;
       UPDATE events SET image_id=(SELECT root.image_id FROM events root WHERE root.id=events.parent_id) WHERE parent_id IS NOT NULL AND image_id IS NULL;
-      PRAGMA user_version=2; COMMIT`)
+      CREATE TABLE IF NOT EXISTS project_covers(project_id TEXT PRIMARY KEY REFERENCES projects(id),image_id TEXT NOT NULL REFERENCES version_images(id));
+      PRAGMA user_version=3; COMMIT`)
   } catch (error) {
     db.exec('ROLLBACK')
     db.close()
@@ -253,6 +254,17 @@ export function createApplication({
       client: p.client,
       tags: JSON.parse(p.tags),
       permission,
+      cover:
+        one(
+          'SELECT a.id AS assetId,v.id AS versionId,i.id AS imageId FROM project_covers c JOIN version_images i ON i.id=c.image_id JOIN versions v ON v.id=i.version_id JOIN assets a ON a.id=v.asset_id WHERE c.project_id=? AND a.project_id=?',
+          id,
+          id,
+        ) ??
+        one(
+          'SELECT a.id AS assetId,v.id AS versionId,i.id AS imageId FROM assets a JOIN versions v ON v.id=a.current_version JOIN version_images i ON i.version_id=v.id WHERE a.project_id=? ORDER BY v.rowid DESC,i.position LIMIT 1',
+          id,
+        ) ??
+        null,
       assets,
       events,
       links,
@@ -435,6 +447,27 @@ export function createApplication({
       }
       m = /^\/api\/projects\/([^/]+)$/.exec(path)
       if (m && req.method === 'GET') return reply(res, 200, projectDTO(ctx, m[1]))
+      m = /^\/api\/projects\/([^/]+)\/cover$/.exec(path)
+      if (m && req.method === 'PUT') {
+        const project = m[1]
+        access(ctx, project, 'edit')
+        const b = await bodyOf(req)
+        if (b.imageId === null) run('DELETE FROM project_covers WHERE project_id=?', project)
+        else {
+          const image = one(
+            'SELECT i.id FROM version_images i JOIN versions v ON v.id=i.version_id JOIN assets a ON a.id=v.asset_id WHERE i.id=? AND a.project_id=?',
+            string(b.imageId),
+            project,
+          )
+          if (!image) fail(400, 'INVALID_IMAGE_REFERENCE')
+          run(
+            'INSERT INTO project_covers(project_id,image_id) VALUES(?,?) ON CONFLICT(project_id) DO UPDATE SET image_id=excluded.image_id',
+            project,
+            image.id,
+          )
+        }
+        return reply(res, 200, {})
+      }
       m = /^\/api\/projects\/([^/]+)\/grants$/.exec(path)
       if (m && req.method === 'PUT') {
         admin(ctx)

@@ -126,6 +126,83 @@ async function fixture(t, options = {}) {
   }
 }
 
+test('project covers select only project images, persist and restrict changes to internal editors', async (t) => {
+  const f = await fixture(t)
+  const path = `/api/projects/${f.project}/cover`
+  const read = async (cookie = f.cookie) =>
+    (await f.request(`/api/projects/${f.project}`, { cookie })).data
+  assert.equal((await read()).cover, null)
+  const upload = (await f.upload()).data
+  const first = (await read()).cover
+  assert.equal(first.versionId, upload.versionId)
+  assert.equal(first.assetId, upload.assetId)
+  const second = (await f.upload(upload.assetId)).data
+  assert.equal((await read()).cover.versionId, second.versionId)
+  const editorCookie = await f.login(f.editor.email)
+  assert.equal(
+    (
+      await f.request(path, {
+        cookie: editorCookie,
+        method: 'PUT',
+        body: { imageId: first.imageId },
+      })
+    ).status,
+    200,
+  )
+  await f.restart()
+  assert.deepEqual((await read()).cover, first)
+  await f.upload(upload.assetId)
+  assert.deepEqual((await read()).cover, first)
+  const link = await f.link()
+  for (const auth of [
+    { cookie: await f.login(f.client.email) },
+    { token: link.token },
+    { cookie: await f.login(f.other.email) },
+  ]) {
+    assert.ok(
+      [403, 404].includes(
+        (await f.request(path, { ...auth, method: 'PUT', body: { imageId: null } })).status,
+      ),
+    )
+  }
+  await f.request(`/api/projects/${f.project}/grants`, {
+    cookie: f.cookie,
+    method: 'PUT',
+    body: { userId: f.editor.id, permission: 'viewer' },
+  })
+  assert.equal(
+    (await f.request(path, { cookie: editorCookie, method: 'PUT', body: { imageId: null } }))
+      .status,
+    403,
+  )
+  const foreign = (
+    await f.request(`/api/projects/${f.privateProject}/uploads`, {
+      cookie: f.cookie,
+      body: { name: 'Private', filename: 'private.png', data: f.image.toString('base64') },
+    })
+  ).data
+  const foreignProject = (
+    await f.request(`/api/projects/${f.privateProject}`, { cookie: f.cookie })
+  ).data
+  assert.equal(foreignProject.cover.versionId, foreign.versionId)
+  assert.equal(
+    (
+      await f.request(path, {
+        cookie: f.cookie,
+        method: 'PUT',
+        body: { imageId: foreignProject.cover.imageId },
+      })
+    ).status,
+    400,
+  )
+  assert.deepEqual((await read()).cover, first)
+  assert.equal(
+    (await f.request(path, { cookie: f.cookie, method: 'PUT', body: { imageId: null } })).status,
+    200,
+  )
+  assert.notEqual((await read()).cover.versionId, first.versionId)
+})
+
 test('multi-image uploads are atomic, bounded and account for the entire batch quota', async (t) => {
   const f = await fixture(t)
   const source = { filename: 'one.png', data: f.image.toString('base64') }

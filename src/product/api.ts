@@ -30,6 +30,7 @@ export type Project = {
   client: string
   tags: string[]
   permission: 'admin' | 'editor' | 'viewer' | 'reviewer'
+  cover: { assetId: string; versionId: string; imageId: string } | null
   assets: Asset[]
   events: {
     id: string

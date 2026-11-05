@@ -1,5 +1,11 @@
 # Product review — 2026-11-03
 
+## Project card covers — 2026-11-05
+
+Project cards now show private background thumbnails with a 2 px blur, a bottom-to-top dark gradient and light text in both themes. Empty projects retain the existing plain card. Automatic covers use the first image of the latest uploaded version. Internal administrators/editors can select any retained image from that project using the card's image button; the saved choice persists through uploads/restarts. Reset restores automatic selection. Cover choice does not change image order or approval. Schema 3 adds only project-cover metadata; the stopped local data directory was backed up before migration.
+
+The complete check passed with 86 tests (61 frontend/guide/upload, 10 tooling/archive, 15 server), lint, TypeScript and production build. The new server integration scenario verifies empty/automatic/manual covers, persistence after restart and replacement, reset, foreign-image rejection and reviewer/guest/viewer/other-project write denial. Browser checks used the real local app: administrator selected Carousel QA's slide-02.png, saved and reloaded to confirm the same selection; dark/light cards and an empty project were inspected. At 390 px the document remained 390 px wide and the cover picker stayed between x=16 and x=374. The fictional Empty project QA fixture remains for comparison. Browser artifacts are local workspace `.lavish/byturn-covers-*`. Figma was not updated in this iteration.
+
 ## Multi-image carousels and terminal approval — 2026-11-05
 
 The app accepts multiple selected or dropped images in one ordered version. Both the upload queue and saved unapproved carousel support drag and drop plus earlier/later buttons. Limits are explicit: 20 images, 5 MB per image and 25 MB per batch. Validation/quota/storage failure rejects the batch atomically. Each image keeps its own original bytes, private thumbnail endpoint and immutable ID; pin coordinates and replies remain attached to that ID through reordering. Schema 2 preserves older single-image versions and annotations. A stopped-server backup of the local data directory was created before upgrading.

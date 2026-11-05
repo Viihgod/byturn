@@ -28,6 +28,7 @@ import { OriginalImage as Image } from './OriginalImage'
 import { UploadDialog as Upload, FileDropArea } from './UploadDialog'
 import { Gallery } from './Gallery'
 import { EventLabel } from './EventLabel'
+import { ProjectCover } from './ProjectCover'
 import { Settings } from './Settings'
 import { Artwork, CommentThread } from './Artwork'
 import type { CommentInput } from './Artwork'
@@ -473,28 +474,47 @@ function Projects({
       </div>
       <div className="p-projects">
         {filtered.map((project) => (
-          <a className="p-project-card" href={'#project/' + project.id} key={project.id}>
-            <div className="p-project-icon">
-              <FolderSimple size={28} />
-              <ArrowUpRight />
-            </div>
-            <span className="p-eyebrow">{project.client}</span>
-            <h2>{project.name}</h2>
-            <div className="p-tags">
-              {project.tags.map((tag) => (
-                <span key={tag}>{tag}</span>
-              ))}
-            </div>
-            <footer>
-              <span>
-                {project.assets.length} {p('files')}
-              </span>
-              <span>
-                {p(project.permission)}
+          <div className="p-project-tile" key={project.id}>
+            <a
+              className="p-project-card"
+              data-cover={!!project.cover || undefined}
+              href={'#project/' + project.id}
+            >
+              {project.cover && (
+                <div className="p-project-cover" aria-hidden="true">
+                  <Image
+                    asset={project.cover.assetId}
+                    version={project.cover.versionId}
+                    imageId={project.cover.imageId}
+                    thumbnail
+                  />
+                </div>
+              )}
+              <div className="p-project-icon">
+                <FolderSimple size={28} />
                 <ArrowUpRight />
-              </span>
-            </footer>
-          </a>
+              </div>
+              <span className="p-eyebrow">{project.client}</span>
+              <h2>{project.name}</h2>
+              <div className="p-tags">
+                {project.tags.map((tag) => (
+                  <span key={tag}>{tag}</span>
+                ))}
+              </div>
+              <footer>
+                <span>
+                  {project.assets.length} {p('files')}
+                </span>
+                <span>
+                  {p(project.permission)}
+                  <ArrowUpRight />
+                </span>
+              </footer>
+            </a>
+            {project.cover && ['admin', 'editor'].includes(project.permission) && (
+              <ProjectCover project={project} act={act} pending={pending} />
+            )}
+          </div>
         ))}
       </div>
       {!filtered.length && (

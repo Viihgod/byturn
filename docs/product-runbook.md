@@ -55,6 +55,8 @@ The allowance is cumulative disk usage, not a monthly quota. PNG/JPEG/WebP origi
 
 ## What is working
 
+Project-grid cards automatically use the first image of the latest upload as a background thumbnail, with a slight blur, a dark bottom-to-top gradient and light text in both themes. Projects without images keep the existing plain card. Administrators and project editors can use the image button on a card to choose any uploaded project image (including retained versions), then Save cover. The choice persists across uploads and restarts. Use latest upload restores automatic selection. Cover choice is project presentation metadata; it does not reorder images or reopen an approved review. Clients, viewers and guest links cannot change it. Schema 3 adds a project-cover table without altering existing images or events.
+
 Internal delivery management offers Edit delivery, Replace images, Share review and a client conversation panel. Replacement creates and selects a new version containing the newly selected image set. Editing changes the delivery name, not the image's pixels. Internal accounts do not get client approval controls; those belong to a client reviewer or guest link.
 
 Choose multiple files using Upload images/Choose images, or drop files into the project's visible drop area. One submission creates one delivery version with an ordered carousel. Reorder the pending queue before upload, or use Organize images on the latest unapproved version. Drag and drop is complemented by earlier/later buttons for touch and keyboard. Removing a queued image does not delete an existing server image. To revise a saved image set, upload a new version.
