@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { FormEvent, ReactNode, SelectHTMLAttributes } from 'react'
 import {
   ArrowLeft,
   ArrowUpRight,
   Check,
   ChatCircleDots,
+  CaretDown,
   DownloadSimple,
   FolderSimple,
   LinkSimple,
@@ -19,7 +20,7 @@ import {
   UploadSimple,
   UsersThree,
 } from '@phosphor-icons/react'
-import { BtBrandLockup, BtButton, BtIconButton } from '../design-system/core'
+import { BtBrandLockup, BtButton } from '../design-system/core'
 import { BtDialog } from '../design-system/overlays'
 import { LocaleProvider } from '../i18n/context'
 import { useTranslation } from '../i18n/locale'
@@ -54,6 +55,14 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       <span>{label}</span>
       {children}
     </label>
+  )
+}
+function ProductSelect(props: SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <div className="p-select-control">
+      <select {...props} />
+      <CaretDown aria-hidden="true" />
+    </div>
   )
 }
 function readForm(event: FormEvent<HTMLFormElement>) {
@@ -218,25 +227,25 @@ function Workspace() {
   )
   const preferences = (
     <div className="p-preferences">
-      <select
-        aria-label={p('language')}
-        value={locale}
-        onChange={(e) => setLocale(e.target.value as 'en' | 'pt-BR')}
-      >
-        <option value="en">EN</option>
-        <option value="pt-BR">PT-BR</option>
-      </select>
-      <BtIconButton
-        label={p(theme === 'dark' ? 'light' : 'dark')}
-        variant="ghost"
-        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      >
+      <label className="p-preference-row">
+        <span>{p('language')}</span>
+        <ProductSelect
+          aria-label={p('language')}
+          value={locale}
+          onChange={(e) => setLocale(e.target.value as 'en' | 'pt-BR')}
+        >
+          <option value="en">EN</option>
+          <option value="pt-BR">PT-BR</option>
+        </ProductSelect>
+      </label>
+      <BtButton variant="secondary" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
         {theme === 'dark' ? <Sun /> : <Moon />}
-      </BtIconButton>
+        {p(theme === 'dark' ? 'light' : 'dark')}
+      </BtButton>
       {user && (
-        <BtIconButton
-          label={p('logout')}
+        <BtButton
           variant="ghost"
+          pending={pending}
           onClick={() => {
             void act(async () => {
               await api('/logout', { method: 'POST' })
@@ -246,7 +255,8 @@ function Workspace() {
           }}
         >
           <SignOut />
-        </BtIconButton>
+          {p('logout')}
+        </BtButton>
       )}
     </div>
   )
@@ -270,7 +280,9 @@ function Workspace() {
           <span className="p-subtle">{p('selfHosted')}</span>
         </div>
         <section className="p-login-form">
-          {preferences}
+          <div className="p-login-settings">
+            <Settings>{preferences}</Settings>
+          </div>
           <div className="p-login-fields">
             <h2>{p('signIn')}</h2>
             <p className="p-subtle">{p('loginHint')}</p>
@@ -322,7 +334,7 @@ function Workspace() {
             )}
           </nav>
           <div className="p-sidebar-base">
-            <Settings />
+            <Settings>{preferences}</Settings>
             <div className="p-person">
               <span className="p-avatar">{user?.name.slice(0, 1)}</span>
               <div>
@@ -334,17 +346,12 @@ function Workspace() {
         </aside>
       )}
       <div className="p-body">
-        <header className="p-topbar">
-          {token ? (
+        {token && (
+          <div className="p-guest-header">
             <BtBrandLockup size="md" />
-          ) : (
-            <span className="p-subtle">
-              Byturn <span aria-hidden="true">/</span>{' '}
-              {p(current.page === 'team' ? 'administration' : 'workspace')}
-            </span>
-          )}
-          {preferences}
-        </header>
+            <Settings>{preferences}</Settings>
+          </div>
+        )}
         {flash}
         {token && unavailable ? (
           <main className="p-empty">
@@ -409,7 +416,6 @@ function Projects({
     <main className="p-content">
       <div className="p-heading">
         <div>
-          <span className="p-eyebrow">{p('yourWorkspace')}</span>
           <h1>{p('projects')}</h1>
           <p>{p('projectsIntro')}</p>
         </div>
@@ -677,7 +683,7 @@ function ProjectView({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <select
+        <ProductSelect
           aria-label={p('filterState')}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
@@ -687,7 +693,7 @@ function ProjectView({
               {p(value)}
             </option>
           ))}
-        </select>
+        </ProductSelect>
         <span>
           {assets.length} {p('files')}
         </span>
@@ -899,7 +905,7 @@ function Review({
         </div>
         <State state={version.state} />
         <Field label={p('version')}>
-          <select
+          <ProductSelect
             value={version.id}
             onChange={(e) => {
               setSelected(e.target.value)
@@ -916,7 +922,7 @@ function Review({
                 {v.id === asset.currentVersion ? ' · ' + p('latest') : ''}
               </option>
             ))}
-          </select>
+          </ProductSelect>
         </Field>
       </div>
       {!latest && <p className="p-history-note">{p('historical')}</p>}
@@ -1157,7 +1163,6 @@ function Admin({
     <main className="p-content">
       <div className="p-heading">
         <div>
-          <span className="p-eyebrow">{p('administration')}</span>
           <h1>{p('team')}</h1>
           <p>{p('teamIntro')}</p>
         </div>
@@ -1200,13 +1205,13 @@ function Admin({
             </Field>
             <p className="p-subtle p-small">{p('passwordHint')}</p>
             <Field label={p('accountType')}>
-              <select name="role">
+              <ProductSelect name="role">
                 {['member', 'client', 'admin'].map((role) => (
                   <option key={role} value={role}>
                     {p(role)}
                   </option>
                 ))}
-              </select>
+              </ProductSelect>
             </Field>
             <BtButton type="submit" pending={pending}>
               {p('addAccount')}
@@ -1292,17 +1297,21 @@ function Admin({
           }}
         >
           <Field label={p('project')}>
-            <select value={projectId} onChange={(e) => setProjectId(e.target.value)} required>
+            <ProductSelect
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              required
+            >
               <option value="">{p('choose')}</option>
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.client} / {project.name}
                 </option>
               ))}
-            </select>
+            </ProductSelect>
           </Field>
           <Field label={p('person')}>
-            <select
+            <ProductSelect
               value={userId}
               onChange={(e) => {
                 setUserId(e.target.value)
@@ -1318,10 +1327,10 @@ function Admin({
                     {u.name} · {p(u.role)}
                   </option>
                 ))}
-            </select>
+            </ProductSelect>
           </Field>
           <Field label={p('permission')}>
-            <select value={permission} onChange={(e) => setPermission(e.target.value)}>
+            <ProductSelect value={permission} onChange={(e) => setPermission(e.target.value)}>
               {(selected?.role === 'client' ? ['viewer', 'reviewer'] : ['viewer', 'editor']).map(
                 (role) => (
                   <option key={role} value={role}>
@@ -1329,7 +1338,7 @@ function Admin({
                   </option>
                 ),
               )}
-            </select>
+            </ProductSelect>
           </Field>
           <BtButton type="submit" pending={pending} disabled={!projectId || !userId}>
             {p('saveAccess')}

@@ -1,5 +1,11 @@
 # Product review — 2026-11-03
 
+## Workspace chrome and Settings — 2026-11-05
+
+Removed the internal top utility bar and breadcrumb, plus the redundant project/administration eyebrow labels. Language, theme and sign out now live in the existing sidebar Settings modal. Guest review and login also expose Settings. The anchor placement, 30% backdrop and separate design-system resource link are retained. Account name/role now use a 2 px gap. All product selects share an explicit caret with a 13 px right inset and 40 px text reservation; native select behavior remains available, with a forced-colors fallback.
+
+Fresh validation: lint, TypeScript and production build; existing locale/forms tests and the design-package integrity test. Browser QA verified language and theme changes inside Settings, persistence after reload, logout/login, project status filtering and administrator dropdowns. Measured caret inset was 12.986 px at browser zoom (13 px CSS) across all three access controls; the internal topbar count was zero. Desktop Settings retained a 30% black backdrop and sidebar anchor. At 390 px the document remained 390 px wide and the settings dialog stayed within x=16…374 and y=173…702. Local screenshots are workspace `.lavish/byturn-settings-*.png`. This update changes the app, not the composed Figma screens.
+
 ## Project card covers — 2026-11-05
 
 Project cards now show private background thumbnails with a 2 px blur, a bottom-to-top dark gradient and light text in both themes. Empty projects retain the existing plain card. Automatic covers use the first image of the latest uploaded version. Internal administrators/editors can select any retained image from that project using the card's image button; the saved choice persists through uploads/restarts. Reset restores automatic selection. Cover choice does not change image order or approval. Schema 3 adds only project-cover metadata; the stopped local data directory was backed up before migration.

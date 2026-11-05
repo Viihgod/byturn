@@ -1,4 +1,5 @@
 import { useId, useSyncExternalStore } from 'react'
+import type { ReactNode } from 'react'
 import { Popover } from 'radix-ui'
 import { ArrowUpRight, GearSix, ShieldCheck, X } from '@phosphor-icons/react'
 import { BtIconButton } from '../design-system/core'
@@ -11,7 +12,7 @@ const subscribeViewport = (update: () => void) => {
   query.addEventListener('change', update)
   return () => query.removeEventListener('change', update)
 }
-export function Settings() {
+export function Settings({ children }: { children?: ReactNode }) {
   const { t } = useTranslation()
   const p = (key: string) => t(('product.' + key) as TranslationKey)
   const id = useId()
@@ -48,6 +49,12 @@ export function Settings() {
             <p className="bt-dialog-description" id={id + '-description'}>
               {p('settingsIntro')}
             </p>
+            {children && (
+              <section className="p-settings-preferences">
+                <h3>{p('preferences')}</h3>
+                {children}
+              </section>
+            )}
             <section className="p-settings-resources">
               <h3>{p('resources')}</h3>
               <div className="p-settings-resource">

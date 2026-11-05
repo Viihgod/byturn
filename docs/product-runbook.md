@@ -4,11 +4,13 @@ This build implements one agency per installation, with a React client, Node.js 
 
 ## Try the prepared workspace
 
-Open http://127.0.0.1:4174 on the computer running the server. The design-system guide remains available at http://127.0.0.1:4174/?guide=1 . English is the default; use the header for Portuguese and light/dark mode.
+Open http://127.0.0.1:4174 on the computer running the server. The design-system guide remains available at http://127.0.0.1:4174/?guide=1 . English is the default; open Settings for language, light/dark mode and sign out. Login and guest review also expose Settings for preferences.
 
 Inside the signed-in workspace, open Settings in the sidebar, then Resources → Open design system. Settings opens as a modal and preserves the current project; the guide opens in a separate tab.
 
 Settings is at the bottom of the sidebar, immediately above the account/avatar. The modal opens next to its trigger with a 30% black backdrop; narrow screens place it below the trigger so it stays visible.
+
+The signed-in workspace has no top utility bar or Byturn/workspace/administration breadcrumb. Project and administration headings omit the redundant eyebrow labels. Account name and role are stacked with a 2 px gap. Native product selects use an explicit 16 px caret inset 13 px from the right edge and reserve 40 px of text padding; keyboard selection and native option lists are retained.
 
 The explicit local demo seed uses password `Byturn-review-2026!` for these fictional accounts:
 
