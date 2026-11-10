@@ -145,6 +145,14 @@
   border-top: 1px solid var(--bt-border);
   margin-top: 24px;
 }
+.p-settings-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--bt-border);
+}
+.p-settings-footer > .bt-button {
+  width: 100%;
+}
 .p-settings-resource {
   display: flex;
   gap: 12px;

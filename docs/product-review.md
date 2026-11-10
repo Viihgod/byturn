@@ -1,5 +1,11 @@
 # Product review — 2026-11-03
 
+## Settings footer and opaque light selection — 2026-11-10
+
+Sign out now follows the Resources block in a separate Settings footer; language and theme remain under Preferences. The shared light-theme selected-fill token is solid `#f2ff40`, replacing yellow at 42% alpha across product navigation and DS selected states. Dark-theme selection remains independent. The rule is recorded in the project AGENTS.md for future changes. Generated foundation tokens, CSS and design archive were refreshed.
+
+Validation: lint, TypeScript/build, two existing color tests and design-package integrity passed. Chrome verified the updated Settings order and light-theme control. Screenshot capture timed out; no screenshot artifact is claimed for this iteration.
+
 ## Workspace chrome and Settings — 2026-11-05
 
 Removed the internal top utility bar and breadcrumb, plus the redundant project/administration eyebrow labels. Language, theme and sign out now live in the existing sidebar Settings modal. Guest review and login also expose Settings. The anchor placement, 30% backdrop and separate design-system resource link are retained. Account name/role now use a 2 px gap. All product selects share an explicit caret with a 13 px right inset and 40 px text reservation; native select behavior remains available, with a forced-colors fallback.

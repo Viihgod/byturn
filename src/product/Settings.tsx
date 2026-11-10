@@ -12,7 +12,7 @@ const subscribeViewport = (update: () => void) => {
   query.addEventListener('change', update)
   return () => query.removeEventListener('change', update)
 }
-export function Settings({ children }: { children?: ReactNode }) {
+export function Settings({ children, footer }: { children?: ReactNode; footer?: ReactNode }) {
   const { t } = useTranslation()
   const p = (key: string) => t(('product.' + key) as TranslationKey)
   const id = useId()
@@ -69,6 +69,7 @@ export function Settings({ children }: { children?: ReactNode }) {
                 <ArrowUpRight aria-hidden="true" />
               </a>
             </section>
+            {footer && <footer className="p-settings-footer">{footer}</footer>}
           </Popover.Content>
         </div>
       </Popover.Portal>

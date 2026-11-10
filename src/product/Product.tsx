@@ -242,23 +242,23 @@ function Workspace() {
         {theme === 'dark' ? <Sun /> : <Moon />}
         {p(theme === 'dark' ? 'light' : 'dark')}
       </BtButton>
-      {user && (
-        <BtButton
-          variant="ghost"
-          pending={pending}
-          onClick={() => {
-            void act(async () => {
-              await api('/logout', { method: 'POST' })
-              setUser(null)
-              go('projects')
-            }, 'signedOut')
-          }}
-        >
-          <SignOut />
-          {p('logout')}
-        </BtButton>
-      )}
     </div>
+  )
+  const signOut = user && (
+    <BtButton
+      variant="ghost"
+      pending={pending}
+      onClick={() => {
+        void act(async () => {
+          await api('/logout', { method: 'POST' })
+          setUser(null)
+          go('projects')
+        }, 'signedOut')
+      }}
+    >
+      <SignOut />
+      {p('logout')}
+    </BtButton>
   )
   if (loading)
     return (
@@ -281,7 +281,7 @@ function Workspace() {
         </div>
         <section className="p-login-form">
           <div className="p-login-settings">
-            <Settings>{preferences}</Settings>
+            <Settings footer={signOut}>{preferences}</Settings>
           </div>
           <div className="p-login-fields">
             <h2>{p('signIn')}</h2>
@@ -334,7 +334,7 @@ function Workspace() {
             )}
           </nav>
           <div className="p-sidebar-base">
-            <Settings>{preferences}</Settings>
+            <Settings footer={signOut}>{preferences}</Settings>
             <div className="p-person">
               <span className="p-avatar">{user?.name.slice(0, 1)}</span>
               <div>
@@ -349,7 +349,7 @@ function Workspace() {
         {token && (
           <div className="p-guest-header">
             <BtBrandLockup size="md" />
-            <Settings>{preferences}</Settings>
+            <Settings footer={signOut}>{preferences}</Settings>
           </div>
         )}
         {flash}
