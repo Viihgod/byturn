@@ -14,3 +14,4 @@ coverage/
 .checks/
 .data/
 .data-backups/
+dist-demo/

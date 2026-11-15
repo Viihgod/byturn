@@ -2,9 +2,11 @@
 
 An agency's self-hosted space for creative delivery, versioned feedback and approvals. One installation manages internal accounts, explicit access per project and optional client accounts. Clients can also review through a revocable link without signing up.
 
-The local reference build uses React, Node.js 24, SQLite and private files on disk. It implements persistent accounts, project grants, original image uploads, immutable versions, comments, change requests, approval, original downloads and link revocation. It is ready for owner review; installers, public deployment and a supported hosting matrix are subsequent work.
+The local reference build uses React, Node.js 24, SQLite and private files on disk. It implements persistent accounts, project grants, original image uploads, immutable versions, comments, change requests, approval, original downloads and link revocation. The first release is a preview for local and self-hosted evaluation. The portfolio demo uses a fictional project in the browser.
 
-## Try locally
+## Demo and local setup
+
+The [portfolio demo](https://viihgod.github.io/byturn/) opens a fictional client review. Inspect the V1 feedback, return to V2, leave a comment or approve, and download the revised poster. Reset demo starts a fresh session. The full app below includes the studio workspace, authentication and persistent storage.
 
 Internal teams manage delivery names, upload multiple images as ordered carousels, replace image sets as new versions and respond to clients. Multiple selection and file drop share a sortable upload queue; saved unapproved carousels also support ordering, with keyboard/touch alternatives. Client review owns approval and change requests. Approval closes the entire version, preventing repeated decisions or further review edits. Both sides can pin comments to individual images and reply in version-specific threads; stable image IDs preserve pins through reordering and relative positions survive viewport changes. Distinct team/client markers and typed activity references clarify the history.
 
@@ -45,6 +47,6 @@ npm run review:build
 
 ## Licensing and privacy
 
-Code: Apache-2.0 (LICENSE and NOTICE). Outfit: included SIL OFL. Radix and Phosphor: MIT. Brand use is separate from the software license. Never commit real credentials, runtime data, client files or private research. The default `.data/` directory is ignored. Repository visibility remains private until a separate public-release decision; Supabase is not connected or required.
+Code: Apache-2.0 (LICENSE and NOTICE). Outfit: included SIL OFL. Radix and Phosphor: MIT. Brand use is separate from the software license. Never commit real credentials, runtime data, client files or private research. The default `.data/` directory is ignored. The current release uses SQLite and requires no Supabase project.
 
 Short-lived branches integrate into main. See [delivery decisions](docs/decisions/003-delivery.md) for local hooks and deliberate releases. There is no automatic production deployment.
