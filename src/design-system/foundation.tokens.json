@@ -159,7 +159,7 @@
       "brand": "#f2ff40",
       "on-brand": "#171900",
       "focus": "#626b00",
-      "selected-fill": "rgb(242 255 64 / 0.42)",
+      "selected-fill": "#f2ff40",
       "selected-border": "#626b00",
       "selected-text": "#394000",
       "support-alpha": 0.24,

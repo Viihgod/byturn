@@ -129,7 +129,7 @@
   --bt-brand: var(--bt-palette-yellow);
   --bt-on-brand: #171900;
   --bt-focus: #626b00;
-  --bt-selected-fill: rgb(242 255 64 / 0.42);
+  --bt-selected-fill: var(--bt-palette-yellow);
   --bt-selected-border: #626b00;
   --bt-selected-text: #394000;
   --bt-support-alpha: 0.24;

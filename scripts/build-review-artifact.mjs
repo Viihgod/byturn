@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-const directory = fileURLToPath(new URL('../dist/', import.meta.url))
+const directory = fileURLToPath(new URL('../dist-review/', import.meta.url))
 function asset(reference, extension) {
   const filename = resolve(directory, reference)
   if (
