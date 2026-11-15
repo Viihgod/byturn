@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { applyColorScheme } from './colorScheme'
 import { BtBrandLockup, BtSelector, BtSegmented } from './design-system/components'
 import { controlHeights } from './design-system/scales'
 import type { BtSize } from './design-system/scales'
@@ -30,7 +31,7 @@ function Guide() {
   const [size, setSize] = useState<BtSize>('md')
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   useEffect(() => {
-    document.documentElement.dataset.theme = theme
+    applyColorScheme(theme)
   }, [theme])
   useEffect(() => {
     const update = () =>

@@ -2,6 +2,15 @@
 <html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8">
+    <meta name="color-scheme" content="dark">
+    <script>
+      try {
+        if (localStorage.getItem('byturn-theme') === 'light') {
+          document.documentElement.dataset.theme = 'light'
+          document.querySelector('meta[name="color-scheme"]').content = 'light'
+        }
+      } catch {}
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Try the Byturn client review flow with a fictional project.">
     <title>Byturn · Client review demo</title>

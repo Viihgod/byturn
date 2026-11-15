@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { applyColorScheme, productThemeKey, readProductTheme } from '../colorScheme'
 import type { FormEvent, ReactNode, SelectHTMLAttributes } from 'react'
 import {
   ArrowLeft,
@@ -127,13 +128,27 @@ function Workspace() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [pending, setPending] = useState(false)
-  const [theme, setTheme] = useState(() =>
-    localStorage.getItem('byturn-theme') === 'light' ? 'light' : 'dark',
-  )
+  const [theme, setTheme] = useState(readProductTheme)
   useEffect(() => {
-    document.documentElement.dataset.theme = theme
-    localStorage.setItem('byturn-theme', theme)
+    applyColorScheme(theme)
   }, [theme])
+  useEffect(() => {
+    const syncTheme = (event: StorageEvent) => {
+      if (event.key === productThemeKey || event.key === null) setTheme(readProductTheme())
+    }
+    window.addEventListener('storage', syncTheme)
+    return () => window.removeEventListener('storage', syncTheme)
+  }, [])
+
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    try {
+      localStorage.setItem(productThemeKey, next)
+    } catch {
+      // Theme switching still works if browser storage is unavailable.
+    }
+  }
   useEffect(() => {
     document.title = 'Byturn — Review workspace'
     const change = () => {
@@ -238,7 +253,7 @@ function Workspace() {
           <option value="pt-BR">PT-BR</option>
         </ProductSelect>
       </label>
-      <BtButton variant="secondary" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+      <BtButton variant="secondary" onClick={toggleTheme}>
         {theme === 'dark' ? <Sun /> : <Moon />}
         {p(theme === 'dark' ? 'light' : 'dark')}
       </BtButton>
