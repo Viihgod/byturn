@@ -1,0 +1,20 @@
+.demo-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  padding: 10px clamp(16px, 4vw, 32px);
+  color: #1b1b19;
+  background: #f2ff40;
+  font: 14px/1.45 Outfit, system-ui, sans-serif;
+}
+.demo-bar p { flex: 1 1 290px; margin: 0; }
+.demo-bar a, .demo-bar button { color: inherit; font: inherit; }
+.demo-bar button {
+  border: 1px solid currentColor;
+  border-radius: 5px;
+  padding: 3px 8px;
+  background: transparent;
+  cursor: pointer;
+}
+.demo-bar a { text-decoration: underline; text-underline-offset: 3px; }
