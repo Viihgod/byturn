@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Watch how Byturn moves a creative project from versioned feedback to approved artwork.">
+  <title>Product walkthrough | Byturn</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      background: #151515;
+      color: #f1f1eb;
+      font: 1rem/1.55 system-ui, sans-serif;
+    }
+
+    body { margin: 0; }
+    main { box-sizing: border-box; width: min(100%, 69rem); margin-inline: auto; padding: 2rem clamp(1rem, 4vw, 3rem) 3rem; }
+    header { margin-block-end: 1.75rem; }
+    a { color: #efff45; text-underline-offset: .18em; }
+    a:focus-visible, summary:focus-visible, video:focus-visible { outline: 2px solid #efff45; outline-offset: .25rem; }
+    h1 { margin: .55rem 0 .25rem; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.05; font-weight: 650; letter-spacing: -.035em; }
+    header p { color: #cccfc3; margin: 0; }
+    video { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; border-radius: .75rem; background: #1c1c1c; }
+    .links { display: flex; flex-wrap: wrap; gap: .35rem 1.5rem; margin-block: 1rem 1.5rem; }
+    details { border-block-start: 1px solid #45473f; padding-block: .8rem; }
+    summary { cursor: pointer; width: fit-content; padding-block: .25rem; }
+    details p { max-width: 62ch; color: #d8dad0; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <a href="https://github.com/Viihgod/byturn">Byturn on GitHub</a>
+      <h1>Product walkthrough</h1>
+      <p>Follow the Northline poster from client feedback to final approval.</p>
+    </header>
+
+    <video controls playsinline preload="metadata" poster="byturn-film-cover.webp" width="1440" height="900" aria-label="Byturn product walkthrough">
+      <source src="byturn-walkthrough-en.mp4" type="video/mp4">
+      <track src="byturn.en.vtt" kind="captions" srclang="en" label="English" default>
+      Your browser does not support video playback. Use the download link below.
+    </video>
+
+    <p class="links">
+      <a href="../">Open the interactive demo</a>
+      <a href="byturn-walkthrough-en.mp4" download>Download MP4</a>
+    </p>
+
+    <details id="transcript">
+      <summary>English transcript</summary>
+      <p>A poster can go through several rounds before it’s ready. Byturn keeps the artwork, feedback, and approval together.</p>
+      <p>The studio uploads a version and shares a review link. Clients can open it without creating an account.</p>
+      <p>Pin a comment to the exact spot that needs attention. Each note stays with its image and version.</p>
+      <p>When the revised artwork is ready, approve that version. The review locks, and the original stays available to download.</p>
+      <p>Try the Northline project in the interactive demo.</p>
+    </details>
+  </main>
+</body>
+</html>

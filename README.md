@@ -4,9 +4,9 @@
 
 Byturn gives studios a self-hosted workspace to share artwork, collect feedback directly on images, and hand off the approved files. Clients can open a revocable review link and leave feedback without creating an account.
 
-[Open the interactive demo](https://viihgod.github.io/byturn/) · [Run Byturn locally](#run-byturn-locally) · [Download the preview release](https://github.com/Viihgod/byturn/releases/tag/v0.1.0)
+[Open the interactive demo](https://viihgod.github.io/byturn/) · [Watch the walkthrough](https://viihgod.github.io/byturn/showcase/) · [Run Byturn locally](#run-byturn-locally) · [Download the preview release](https://github.com/Viihgod/byturn/releases/tag/v0.1.0)
 
-![Byturn wordmark and client-review workspace with a Northline poster and a feedback panel](docs/showcase/byturn-cover.webp)
+[![Watch the Byturn walkthrough, from the first artwork review to approval](docs/showcase/byturn-cover.webp)](https://viihgod.github.io/byturn/showcase/)
 
 ## From first draft to approved artwork
 
