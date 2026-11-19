@@ -1,14 +1,36 @@
 # Byturn
 
-An agency's self-hosted space for creative delivery, versioned feedback and approvals. One installation manages internal accounts, explicit access per project and optional client accounts. Clients can also review through a revocable link without signing up.
+**Creative review and approvals, version by version.**
 
-The local reference build uses React, Node.js 24, SQLite and private files on disk. It implements persistent accounts, project grants, original image uploads, immutable versions, comments, change requests, approval, original downloads and link revocation. The first release is a preview for local and self-hosted evaluation. The portfolio demo uses a fictional project in the browser.
+Byturn gives studios a self-hosted workspace to share artwork, collect feedback directly on images, and hand off the approved files. Clients can open a revocable review link and leave feedback without creating an account.
 
-## Demo and local setup
+[Open the interactive demo](https://viihgod.github.io/byturn/) · [Run Byturn locally](#run-byturn-locally) · [Download the preview release](https://github.com/Viihgod/byturn/releases/tag/v0.1.0)
 
-The [portfolio demo](https://viihgod.github.io/byturn/) opens a fictional client review. Inspect the V1 feedback, return to V2, leave a comment or approve, and download the revised poster. Reset demo starts a fresh session. The full app below includes the studio workspace, authentication and persistent storage.
+![Byturn wordmark and client-review workspace with a Northline poster and a feedback panel](docs/showcase/byturn-cover.webp)
 
-Internal teams manage delivery names, upload multiple images as ordered carousels, replace image sets as new versions and respond to clients. Multiple selection and file drop share a sortable upload queue; saved unapproved carousels also support ordering, with keyboard/touch alternatives. Client review owns approval and change requests. Approval closes the entire version, preventing repeated decisions or further review edits. Both sides can pin comments to individual images and reply in version-specific threads; stable image IDs preserve pins through reordering and relative positions survive viewport changes. Distinct team/client markers and typed activity references clarify the history.
+## From first draft to approved artwork
+
+1. **Share a version.** Upload original images, arrange them as a carousel, and send the client a review link.
+2. **Review in context.** Pin a comment to the artwork or request changes for that version. A revised upload starts a new review and keeps earlier feedback available.
+3. **Approve and deliver.** Approval closes the review for that version. The client can revisit its history and download the originals.
+
+![An annotation pinned to the date on version one of the Northline poster](docs/showcase/pinned-feedback.webp)
+
+![The Northline review after version two is approved, showing the locked status and the option to download the original](docs/showcase/approved-version.webp)
+
+The [interactive demo](https://viihgod.github.io/byturn/) opens a fictional client project. Switch to **V1** to inspect the feedback, return to **V2** to approve it, and download the revised poster. Reload or use **Reset demo** to start over.
+
+## Design and implementation
+
+Byturn pairs a Figma component library with React components and shared design tokens. The local component guide at `/?guide=1` shows component states in light and dark themes. The interface is available in English and Brazilian Portuguese.
+
+![Byturn component specimens in Figma and the corresponding interactive React library](docs/showcase/design-system.webp)
+
+The self-hosted preview uses React, TypeScript, Node.js 24, SQLite, and private file storage. It supports internal accounts, explicit project access, optional client accounts, and revocable review links. See the [access rules](docs/product-access.md) for how permissions and review decisions work.
+
+## Run Byturn locally
+
+With Node.js 24 installed, run:
 
 ```sh
 npm ci
@@ -17,36 +39,16 @@ npm run build
 npm start
 ```
 
-Open http://127.0.0.1:4174 . Setup requires an empty user database and does not replace existing data. Demo accounts, local credentials, a full review journey, configuration and backup instructions are in [the runbook](docs/product-runbook.md). For an installation without fictional accounts, bootstrap your administrator through the environment as described there.
+Open <http://127.0.0.1:4174>. The demo setup requires an empty user database. The [runbook](docs/product-runbook.md) covers local demo accounts, administrator setup, configuration, and backups.
 
-The design-system guide remains at `/?guide=1`. It has independent illustrative specimens; product data and authorization live in the server. English default / PT-BR; dark default / optional light. Approved Byturn geometry, Outfit and the existing semantic design tokens are preserved.
+## Develop and verify
 
-## Verify and develop
+- `npm run check` runs lint, UI and tooling tests, server integration tests, the type check, and the production build.
+- `npm run test:server` exercises the server with temporary databases and files.
+- `npm run package:design` and `npm run review:build` produce the design package and standalone component guide.
 
-```sh
-npm run check
-npm run test:server
-npm run package:design
-npm run review:build
-```
+The source is organized into [product UI](src/product), [server](server), [design system](src/design-system), and [component guide](src/catalog). See the [product review notes](docs/product-review.md) and [delivery decisions](docs/decisions/003-delivery.md) for more detail.
 
-`check` runs lint, component/guide/i18n tests with DS coverage thresholds, delivery-tooling/archive tests, server integration tests and a production type-check/build. The API tests exercise real temporary databases and original files, independent sessions, forbidden cross-project access, revocation, persistence and concurrent decisions. Browser QA is documented in the product review record; code coverage is not a security certification.
+## License
 
-`package:design` refreshes generated tokens, guide documentation and the source/brand ZIP. `review:build` produces a standalone **design-system guide** at `dist-review/Byturn_Identity_DS_v1.html`; the functional product in `dist/` requires the running backend. Development uses `npm start` plus `npm run dev` in separate terminals and an explicitly allowed `BYTURN_DEV_ORIGIN`.
-
-## Structure
-
-- `src/product`: functional workspace, account management and review UI.
-- `server`: HTTP API, SQLite authorization/persistence, private image storage, bootstrap and integration tests.
-- `src/design-system`: approved identity, semantic tokens and React components.
-- `src/catalog`: independent IDV/DS guide, component registry, specimens and downloads.
-- `src/i18n/translation.json`: English and Brazilian Portuguese interface text.
-- `docs/product-access.md`: access matrix and review rules.
-- `docs/product-runbook.md`: operation, demo and deployment boundaries.
-- `docs/product-review.md`: implementation and verification record.
-
-## Licensing and privacy
-
-Code: Apache-2.0 (LICENSE and NOTICE). Outfit: included SIL OFL. Radix and Phosphor: MIT. Brand use is separate from the software license. Never commit real credentials, runtime data, client files or private research. The default `.data/` directory is ignored. The current release uses SQLite and requires no Supabase project.
-
-Short-lived branches integrate into main. See [delivery decisions](docs/decisions/003-delivery.md) for local hooks and deliberate releases. There is no automatic production deployment.
+The code is licensed under [Apache 2.0](LICENSE). See [NOTICE](NOTICE) for third-party licenses and brand terms.
