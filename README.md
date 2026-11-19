@@ -6,7 +6,7 @@ Byturn gives studios a self-hosted workspace to share artwork, collect feedback 
 
 [Open the interactive demo](https://viihgod.github.io/byturn/) · [Watch the walkthrough](https://viihgod.github.io/byturn/showcase/) · [Run Byturn locally](#run-byturn-locally) · [Download the preview release](https://github.com/Viihgod/byturn/releases/tag/v0.1.0)
 
-[![Watch the Byturn walkthrough, from the first artwork review to approval](docs/showcase/byturn-cover.webp)](https://viihgod.github.io/byturn/showcase/)
+[![Watch the Byturn walkthrough, from the first artwork review to approval](docs/showcase/byturn-film-cover.webp)](https://viihgod.github.io/byturn/showcase/)
 
 ## From first draft to approved artwork
 

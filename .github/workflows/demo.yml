@@ -29,7 +29,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp -r demo/showcase dist-demo/showcase
-          cp docs/showcase/byturn-cover.webp dist-demo/showcase/byturn-film-cover.webp
+          cp docs/showcase/byturn-film-cover.webp dist-demo/showcase/
           gh release download v0.1.0 --pattern byturn-walkthrough-en.mp4 --dir dist-demo/showcase
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
